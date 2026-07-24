@@ -1,0 +1,26 @@
+==================================================
+           DATASET PROFILE SUMMARY
+==================================================
+
+Total PDFs             : 2876
+Valid PDFs             : 2876
+Corrupted PDFs         : 0
+
+PDFs With Text         : 2876
+PDFs Without Text      : 0
+
+Total Pages            : 4050
+Average Pages          : 1.41
+Maximum Pages          : 5
+Minimum Pages          : 1
+
+Total Words            : 3690269
+Average Words/PDF      : 1283.13
+
+Total Characters       : 26894016
+Average Characters/PDF : 9351.19
+
+Largest PDF            : financial-assistance-scheme copy.pdf
+Smallest PDF           : mdoc.pdf
+
+==================================================

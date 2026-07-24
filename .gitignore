@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ===============================
+# Government_Scheme-AI datasets
+# ===============================
+
+dataset/gov_myscheme/
+dataset/extracted_text/
+dataset/cleaned_text/
+dataset/structured_text/
+dataset/chunks/
+dataset/embeddings/

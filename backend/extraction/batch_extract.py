@@ -1,7 +1,8 @@
-import os
 import json
+import os
 import time
 import traceback
+from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -13,120 +14,148 @@ from postprocess import clean_json
 from prompts import EXTRACTION_PROMPT
 from schema import Scheme
 
-# =====================================================
-# Load API Key
-# =====================================================
+# ==========================================================
+# CONFIGURATION
+# ==========================================================
 
-load_dotenv()
-
-API_KEY = os.getenv("GEMINI_API_KEY")
-
-if not API_KEY:
-    raise ValueError("❌ GEMINI_API_KEY not found!")
-
-client = genai.Client(api_key=API_KEY)
-
-# =====================================================
-# Paths
-# =====================================================
-
-PDF_FOLDER = Path("dataset/gov_myscheme/text_data")
-OUTPUT_FOLDER = Path(OUTPUT_FOLDER = Path("dataset/gov_myscheme/json_output"))
-LOG_FOLDER = Path("backend/logs")
+PDF_FOLDER = Path("dataset/gov_myscheme/unique_pdfs")
+OUTPUT_FOLDER = Path("dataset/gov_myscheme/json_output")
+LOG_FOLDER = Path("dataset/gov_myscheme/logs")
 
 OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
 LOG_FOLDER.mkdir(parents=True, exist_ok=True)
 
 LOG_FILE = LOG_FOLDER / "extraction_errors.log"
 
-# =====================================================
-# PDF List
-# =====================================================
+REQUEST_DELAY = 2
+MAX_RETRIES = 5
 
-pdf_files = sorted(PDF_FOLDER.glob("*.pdf"))
+# ==========================================================
+# GEMINI
+# ==========================================================
 
-total = len(pdf_files)
+load_dotenv()
 
-print("=" * 70)
-print(f"Found {total} PDF files")
-print("=" * 70)
+API_KEY = os.getenv("GEMINI_API_KEY")
 
-start_time = time.time()
+if not API_KEY:
+    raise ValueError("GEMINI_API_KEY not found in .env")
+
+client = genai.Client(api_key=API_KEY)
+
+# ==========================================================
+# FIND UNPROCESSED PDFs
+# ==========================================================
+
+all_pdfs = sorted(PDF_FOLDER.glob("*.pdf"))
+
+remaining_pdfs = []
+
+for pdf in all_pdfs:
+
+    output_json = OUTPUT_FOLDER / f"{pdf.stem}.json"
+
+    if not output_json.exists():
+        remaining_pdfs.append(pdf)
+
+print("\n" + "=" * 80)
+print(f"Total PDFs           : {len(all_pdfs)}")
+print(f"Already Processed    : {len(all_pdfs)-len(remaining_pdfs)}")
+print(f"Remaining PDFs       : {len(remaining_pdfs)}")
+print("=" * 80)
+
+if len(remaining_pdfs) == 0:
+    print("\nEverything has already been processed.")
+    exit()
+
+# ==========================================================
+# ASK USER
+# ==========================================================
+
+while True:
+
+    try:
+
+        batch_size = int(
+            input("\nHow many PDFs do you want to process this run? : ")
+        )
+
+        if batch_size <= 0:
+            print("Please enter a positive number.")
+            continue
+
+        break
+
+    except ValueError:
+        print("Enter a valid integer.")
+
+pdf_files = remaining_pdfs[:batch_size]
+
+TOTAL = len(pdf_files)
+
+print("\n" + "=" * 80)
+print("Batch Summary")
+print("=" * 80)
+print(f"Processing this run : {TOTAL}")
+print("=" * 80)
 
 success = 0
 failed = 0
-skipped = 0
 
-# =====================================================
-# Process PDFs
-# =====================================================
+start_time = time.time()
 
-for index, pdf_path in enumerate(pdf_files, start=1):
+# ==========================================================
+# PROCESS
+# ==========================================================
+
+for idx, pdf_path in enumerate(pdf_files, start=1):
+
+    print("\n" + "-" * 80)
+    print(f"[{idx}/{TOTAL}] {pdf_path.name}")
 
     output_file = OUTPUT_FOLDER / f"{pdf_path.stem}.json"
 
-    # Skip existing files
+    retry = 0
 
-    if output_file.exists():
-        skipped += 1
-        print(f"[{index}/{total}] ⏭ Skipped : {pdf_path.name}")
-        continue
-
-    print(f"\n[{index}/{total}] Processing : {pdf_path.name}")
-
-    retries = 3
-
-    while retries > 0:
+    while retry < MAX_RETRIES:
 
         try:
 
-            # -----------------------------------------
-            # Extract Text
-            # -----------------------------------------
+            # --------------------------------------------------
 
             raw_text = extract_text_from_pdf(str(pdf_path))
 
             clean_text = preprocess_text(raw_text)
 
-            # -----------------------------------------
-            # Gemini Prompt
-            # -----------------------------------------
-
             prompt = f"""
 {EXTRACTION_PROMPT}
 
-----------------------------
+------------------------
 
 {clean_text}
 
-----------------------------
+------------------------
 """
 
             response = client.models.generate_content(
                 model="gemini-2.5-flash",
                 contents=prompt,
                 config={
+                    "temperature": 0.1,
                     "response_mime_type": "application/json",
                     "response_schema": Scheme,
-                    "temperature": 0.1,
                 },
             )
 
-            # -----------------------------------------
-            # Validate
-            # -----------------------------------------
-
             scheme = Scheme.model_validate_json(response.text)
 
-            cleaned_json = clean_json(scheme.model_dump())
-
-            # -----------------------------------------
-            # Save
-            # -----------------------------------------
+            final_json = clean_json(
+                scheme.model_dump()
+            )
 
             with open(output_file, "w", encoding="utf-8") as f:
                 json.dump(
-                    cleaned_json,
+                    final_json,
                     f,
                     indent=4,
                     ensure_ascii=False,
@@ -134,54 +163,128 @@ for index, pdf_path in enumerate(pdf_files, start=1):
 
             success += 1
 
-            print("✅ Saved")
+            elapsed = time.time() - start_time
+
+            average = elapsed / max(success + failed, 1)
+
+            remaining = TOTAL - idx
+
+            eta = timedelta(seconds=int(average * remaining))
+
+            print("SUCCESS")
+            print(f"Elapsed : {timedelta(seconds=int(elapsed))}")
+            print(f"ETA      : {eta}")
+
+            time.sleep(REQUEST_DELAY)
 
             break
 
+        except KeyboardInterrupt:
+
+            print("\nExtraction stopped by user.")
+            print("Run the script again to resume automatically.")
+            exit()
+
         except Exception as e:
 
-            retries -= 1
+            error_message = str(e).lower()
 
-            if retries > 0:
+            quota_keywords = [
+                "429",
+                "resource_exhausted",
+                "quota",
+                "rate limit",
+                "too many requests",
+                "resource exhausted",
+                "quota exceeded",
+            ]
 
-                print("⚠ Retrying in 5 seconds...")
+            # --------------------------------------------------
+            # DAILY QUOTA / RATE LIMIT
+            # --------------------------------------------------
 
-                time.sleep(5)
+            if any(keyword in error_message for keyword in quota_keywords):
+
+                print("\n" + "=" * 80)
+                print("🚨 GEMINI FREE API QUOTA REACHED")
+                print("=" * 80)
+                print("The free Gemini API quota has been exhausted.")
+                print("All completed JSON files have already been saved.")
+                print("No work has been lost.")
+                print("\nYou can simply run this script again later (or tomorrow).")
+                print("It will automatically continue from where it stopped.")
+                print("=" * 80)
+
+                with open(LOG_FILE, "a", encoding="utf-8") as log:
+
+                    log.write("=" * 80 + "\n")
+                    log.write("GEMINI QUOTA REACHED\n")
+                    log.write(f"Stopped at PDF : {pdf_path.name}\n")
+                    log.write(str(e) + "\n\n")
+
+                exit()
+
+            # --------------------------------------------------
+            # NORMAL RETRY
+            # --------------------------------------------------
+
+            retry += 1
+
+            if retry < MAX_RETRIES:
+
+                wait = min(10 * (2 ** (retry - 1)), 300)
+
+                print(f"\nRetry {retry}/{MAX_RETRIES}")
+                print(f"Reason : {e}")
+                print(f"Waiting {wait} seconds...\n")
+
+                time.sleep(wait)
 
             else:
 
                 failed += 1
 
-                print("❌ Failed")
+                print("\nFAILED")
+                print(e)
 
                 with open(LOG_FILE, "a", encoding="utf-8") as log:
 
                     log.write("=" * 80 + "\n")
                     log.write(f"PDF : {pdf_path.name}\n")
-                    log.write(str(e) + "\n")
+                    log.write(str(e) + "\n\n")
                     log.write(traceback.format_exc())
                     log.write("\n\n")
 
-elapsed = time.time() - start_time
+# ==========================================================
+# SUMMARY
+# ==========================================================
 
-# =====================================================
-# Summary
-# =====================================================
+elapsed = timedelta(seconds=int(time.time() - start_time))
 
 print("\n")
-print("=" * 70)
-print("EXTRACTION COMPLETED")
-print("=" * 70)
+print("=" * 80)
+print("RUN COMPLETE")
+print("=" * 80)
 
-print(f"Total PDFs      : {total}")
-print(f"Successful      : {success}")
-print(f"Skipped         : {skipped}")
-print(f"Failed          : {failed}")
-print(f"Elapsed Time    : {elapsed / 60:.2f} minutes")
+print(f"Successful : {success}")
+print(f"Failed     : {failed}")
+print(f"Elapsed    : {elapsed}")
 
-print("=" * 70)
+print("\nJSON Output")
+print(OUTPUT_FOLDER)
 
-if failed > 0:
-    print(f"Check log file: {LOG_FILE}")
+print("\nError Log")
+print(LOG_FILE)
 
-print("=" * 70)
+remaining = len([
+    pdf
+    for pdf in all_pdfs
+    if not (OUTPUT_FOLDER / f"{pdf.stem}.json").exists()
+])
+
+print(f"\nRemaining PDFs : {remaining}")
+
+if remaining == 0:
+    print("\n🎉 Dataset extraction completed successfully!")
+
+print("=" * 80)

@@ -1,0 +1,14 @@
+# Reconstructed from actual imports across backend/ (see git history /
+# WORK_REPORT.md for context — this file was previously committed empty,
+# which meant the "working" Gemini pipeline could not be reproduced).
+#
+# Versions pinned to what is verified working in the project venv.
+
+pymupdf==1.28.2          # extract_text.py, backend/scripts/*.py  (imported as `fitz`)
+google-genai==2.22.0     # batch_extract.py, extract_to_json.py   (imported as `google.genai`)
+python-dotenv==1.2.3     # batch_extract.py, extract_to_json.py, test files (imported as `dotenv`)
+pydantic==2.13.4         # schema.py, validate_json.py
+openai==3.3.0            # test_ollama.py, test_docling_qwen.py, test_docling_groq.py (OpenAI-compatible client for Ollama/Groq)
+docling==2.120.3         # test_docling.py, test_docling_qwen.py, test_docling_groq.py
+huggingface_hub==1.28.0  # backend/scripts/download_dataset.py
+pandas==3.0.5            # backend/scripts/profile_dataset.py

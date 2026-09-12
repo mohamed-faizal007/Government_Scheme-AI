@@ -144,12 +144,49 @@ def classify_heading(heading_text: str) -> Tuple[str, float]:
     return best_category, best_score
 
 
+def _merge_duplicate_heading_continuations(results: List[Dict]) -> List[Dict]:
+    """
+    A heading-vocabulary term (e.g. "Objective") can fire a second time
+    mid-paragraph, inside content that is really a continuation of the
+    section that same heading text already opened -- not a new section.
+    Classifying that second occurrence independently risks a different
+    (wrong) category, which truncates the real section and leaks its
+    remainder into whatever category the duplicate happened to score
+    highest on.
+
+    Detect this by exact (case/whitespace-insensitive) heading-text repeat
+    against the immediately preceding heading, and force the repeat to
+    inherit the preceding heading's category/confidence -- a continuation
+    marker, not a new section boundary. `collect_sections_by_category`
+    already concatenates same-category content in document order, so this
+    is enough to merge the split content back into one section.
+    """
+
+    merged: List[Dict] = []
+
+    for result in results:
+        if merged and result["heading"].strip().lower() == merged[-1]["heading"].strip().lower():
+            previous = merged[-1]
+            merged.append({
+                "heading": result["heading"],
+                "category": previous["category"],
+                "score": previous["score"],
+                "confident": previous["confident"],
+                "continuation": True,
+            })
+        else:
+            merged.append({**result, "continuation": False})
+
+    return merged
+
+
 def classify_headings(headings: List[str]) -> List[Dict]:
     """
     Classify a batch of heading strings.
 
     Returns one dict per heading:
-      {"heading": str, "category": str, "score": float, "confident": bool}
+      {"heading": str, "category": str, "score": float, "confident": bool,
+       "continuation": bool}
     """
 
     results = []
@@ -164,6 +201,59 @@ def classify_headings(headings: List[str]) -> List[Dict]:
             "score": score,
             "confident": score >= threshold,
         })
+
+    return _merge_duplicate_heading_continuations(results)
+
+
+def apply_gap_chain_suppression(sections: List[Tuple[str, str]], classifications: List[Dict]) -> List[Dict]:
+    """
+    Detect nav-bar/tab-list chrome: a run of consecutive heading-vocabulary
+    matches connected by exactly zero characters of content between them
+    (e.g. "...DetailsBenefitsEligibilityApplication ProcessDocuments
+    RequiredFrequently Asked QuestionsSources And References..." -- webpage
+    tab labels glued together with no real content). Verified safe across
+    an 11-file sweep: real section content never has zero characters
+    before the next heading match, so a chain of length >= 2 is always
+    chrome, never a false positive.
+
+    A chain is a maximal run of sections[i] where content_text == "" for
+    every member except possibly the last. The last member's own content
+    is NOT empty -- it's the real content that immediately follows the
+    chrome (e.g. leftover popup noise + the scheme's own description/
+    objective paragraph, ending right before the next real heading) --
+    but it must not be embedding-classified either, since the heading
+    text that opened it ("Sources And References", in this dataset) is
+    itself still just chrome, and scoring it normally either misplaces
+    this content or drops it silently (observed: scores low-confidence
+    against every category, so collect_sections_by_category would drop
+    it entirely). Flagged "orphan" instead, for verbatim capture into
+    overview.description by the caller.
+
+    Every classification dict gains "suppressed" (bool) and "orphan"
+    (bool) keys; both default to False when no chain is detected.
+    """
+
+    results = [dict(c) for c in classifications]
+    for r in results:
+        r.setdefault("suppressed", False)
+        r.setdefault("orphan", False)
+
+    n = len(sections)
+    i = 0
+    while i < n:
+        chain_start = i
+        while i < n - 1 and sections[i][1] == "":
+            i += 1
+        chain_end = i
+        chain_length = chain_end - chain_start + 1
+
+        if chain_length >= 2:
+            for j in range(chain_start, chain_end):
+                results[j]["suppressed"] = True
+            results[chain_end]["suppressed"] = True
+            results[chain_end]["orphan"] = True
+
+        i += 1
 
     return results
 

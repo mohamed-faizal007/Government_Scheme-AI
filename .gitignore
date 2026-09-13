@@ -227,3 +227,6 @@ dataset/cleaned_text/
 dataset/structured_text/
 dataset/chunks/
 dataset/embeddings/
+
+# Chatbot generated vector store (regenerate via chatbot/backend/database/load_chroma.py)
+chatbot/data/

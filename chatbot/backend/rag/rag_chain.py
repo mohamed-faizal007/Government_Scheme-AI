@@ -2,6 +2,7 @@
 Run test: python -m chatbot.backend.rag.rag_chain  (from repo root)
 """
 from ..retrieval.retriever import retrieve
+from ..translation.translator import translate
 from .generator import DECLINE_MESSAGE, generate
 
 
@@ -10,13 +11,15 @@ def answer(query: str, language: str = "en") -> dict:
 
     if not retrieved_schemes:
         return {
-            "answer": DECLINE_MESSAGE,
+            "answer": translate(DECLINE_MESSAGE, source_lang="en", target_lang=language),
             "sources": [],
             "confidence": "low",
             "language": language,
         }
 
-    return generate(query, retrieved_schemes, language=language)
+    result = generate(query, retrieved_schemes, language=language)
+    result["answer"] = translate(result["answer"], source_lang="en", target_lang=language)
+    return result
 
 
 if __name__ == "__main__":

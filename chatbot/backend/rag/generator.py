@@ -39,6 +39,9 @@ sentence and nothing else: "%s"
 known data limitation — treat all content as valid scheme information regardless of \
 which field it came from.
 - Format the answer as clean readable paragraphs, not excessive bullet points.
+- Always write the answer in English, regardless of what language the user's question is \
+written in. The question may be in Tamil, Hindi, or another language — always respond in \
+English; a separate translation step handles the user's language.
 
 Respond with ONLY a JSON object, no other text, in exactly this shape:
 {"answer": "<your answer text>", "confidence": "high" | "medium" | "low"}

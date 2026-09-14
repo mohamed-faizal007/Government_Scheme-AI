@@ -1,7 +1,68 @@
 import re
 from typing import List, Optional
 
+from postprocess import repair_mojibake
 from preprocess import HEADINGS as _BASE_HEADINGS
+
+# ==========================================================
+# FOOTER NOISE
+# ==========================================================
+# Literal footer strings observed verbatim in raw extracted text (page
+# footer/contact block), contaminating FAQ answers and objectives when
+# left in place. Stripped by exact literal match (re.escape'd, so
+# regex-special characters like "(", ")", "©", "®", "." are treated as
+# literal text, not regex syntax) before boundary insertion or heading
+# classification ever sees the text.
+#
+# Two real-data wrinkles found while validating against actual extracted
+# footers (not just the literal strings as originally reported), both
+# handled below rather than by changing the reported literal strings
+# themselves:
+#
+#   1. The source text is mojibake (UTF-8 decoded as cp1252, e.g. "©"
+#      comes out as "Â©", "®" as "Â®") -- repaired first via
+#      postprocess.repair_mojibake so the literal-© match actually lands.
+#   2. "(DIC) (Meit" assumes "(DIC)" and "(Meit" are adjacent, but real
+#      text has "Ministry of Electronics & IT" glued between them:
+#      "(DIC)Ministry of Electronics & IT (MeitY)...". Matched with a
+#      distance-bounded gap instead of an exact literal so it still can't
+#      runaway-match unrelated content elsewhere in the document.
+
+_FOOTER_NOISE_PHRASES = [
+    "No new news and updates available©2024",
+    "Y)Government of India®",
+    "Get in touch4th Floor",
+    "Electronics Niketan, 6 CGO Complex, Lodhi Road, New Delhi - 110003, India",
+    "(011) 24303714",
+    "v-2.1.1",
+]
+
+
+def _tolerant_pattern(phrase: str) -> str:
+    """re.escape each fragment, but allow zero or more whitespace where
+    the literal has a space -- real extractions are inconsistent about
+    whether "support-" and "myscheme..." are glued or space-separated."""
+
+    fragments = phrase.split(" ")
+    return r"\s*".join(re.escape(f) for f in fragments)
+
+
+_FOOTER_NOISE_REGEX = re.compile(
+    "|".join(re.escape(phrase) for phrase in _FOOTER_NOISE_PHRASES)
+    + r"|\(DIC\).{0,60}?\(Meit"
+    + "|" + _tolerant_pattern("support- myscheme[at]digitalindia[dot]gov[dot]in"),
+    re.IGNORECASE,
+)
+
+
+def strip_footer_noise(text: str) -> str:
+    """
+    Remove known footer strings verbatim (case-insensitive), before any
+    boundary insertion or heading classification runs. Repairs mojibake
+    first so literal matches against real special characters (©, ®) land.
+    """
+
+    return _FOOTER_NOISE_REGEX.sub("", repair_mojibake(text))
 
 # ==========================================================
 # HEADING VOCABULARY
@@ -132,3 +193,8 @@ if __name__ == "__main__":
     print(sample)
     print("\nAFTER:")
     print(insert_boundaries(sample))
+
+    footer_sample = "Get in touch4th Floor, Ne GD, Electronics Niketan"
+    print("\nFOOTER STRIP TEST:")
+    print("BEFORE:", repr(footer_sample))
+    print("AFTER: ", repr(strip_footer_noise(footer_sample)))

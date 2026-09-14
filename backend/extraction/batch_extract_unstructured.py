@@ -27,14 +27,15 @@ from pathlib import Path
 # not through the UTF-8 file writes below, so this must be set explicitly.
 sys.stdout.reconfigure(encoding="utf-8")
 
-from classify_headings import classify_headings
+from classify_headings import apply_gap_chain_suppression, classify_headings
 from extract_sections import (
     collect_sections_by_category,
     content_items,
     extract_faq_pairs,
+    filter_label_artifacts,
     split_into_sections,
 )
-from insert_boundaries import insert_boundaries
+from insert_boundaries import insert_boundaries, strip_footer_noise
 from parse_unstructured import partition_pdf, pages_consumed
 from postprocess import clean_json
 from preprocess import REMOVE_PHRASES, _replace_whole_phrase
@@ -77,14 +78,32 @@ def strip_noise(text: str) -> str:
     return text
 
 
+# Button/CTA labels that contain heading-vocabulary words (e.g. "Check
+# Eligibility" contains "Eligibility") and so can fire a false heading
+# match if left in place until after boundary insertion. Stripped BEFORE
+# insert_boundaries() specifically for this reason -- unlike the rest of
+# REMOVE_PHRASES, which runs after boundary insertion by design (see
+# strip_noise above) since it doesn't share this problem.
+_BUTTON_PHRASES = ["Check Eligibility", "Apply Now"]
+
+
+def strip_button_phrases(text: str) -> str:
+    """Remove known button/CTA label text before heading-vocabulary
+    matching runs, so it can't open a false section boundary."""
+
+    for phrase in _BUTTON_PHRASES:
+        text = _replace_whole_phrase(text, phrase, "")
+    return text
+
+
 # ==========================================================
 # PER-PDF PIPELINE
 # ==========================================================
 
-def build_scheme_dict(by_category: dict, scheme_name: str) -> dict:
+def build_scheme_dict(by_category: dict, scheme_name: str, description: str = "") -> dict:
     data = {
         "metadata": {"scheme_name": scheme_name},
-        "overview": {"objectives": []},
+        "overview": {"description": description, "objectives": []},
         "benefits": {"other_benefits": []},
         "eligibility": {"conditions": [], "exclusions": []},
         "application": {"documents": [], "steps": []},
@@ -92,7 +111,9 @@ def build_scheme_dict(by_category: dict, scheme_name: str) -> dict:
     }
 
     for category, (section, field) in LIST_FIELD_CATEGORIES.items():
-        data[section][field] = by_category.get(category, [])
+        data[section][field] = filter_label_artifacts(
+            by_category.get(category, []), scheme_name
+        )
 
     data["faq"] = [
         {"question": q["question"], "answer": q["answer"]}
@@ -108,20 +129,33 @@ def process_pdf(pdf_path: Path) -> dict:
 
     raw_text = "\n".join((el.get("text") or "") for el in elements)
 
-    boundary_text = insert_boundaries(raw_text)
+    footer_stripped_text = strip_footer_noise(raw_text)
+    button_stripped_text = strip_button_phrases(footer_stripped_text)
+    boundary_text = insert_boundaries(button_stripped_text)
     clean_text = strip_noise(boundary_text)
 
     preamble, sections = split_into_sections(clean_text)
     heading_texts = [heading for heading, _ in sections]
 
     classifications = classify_headings(heading_texts)
+    classifications = apply_gap_chain_suppression(sections, classifications)
 
     preamble_items = content_items(preamble)
     scheme_name = preamble_items[0] if preamble_items else pdf_path.stem
 
+    # First orphan block found (nav-bar chain's trailing real content) is
+    # captured verbatim into overview.description, unclassified. Second
+    # occurrence (this dataset's PDFs render the whole page twice) is
+    # skipped -- first occurrence only.
+    description = ""
+    for (_, content_text), classification in zip(sections, classifications):
+        if classification.get("orphan") and not description:
+            description = content_text.strip()
+            break
+
     by_category = collect_sections_by_category(sections, classifications)
 
-    scheme_dict = build_scheme_dict(by_category, scheme_name)
+    scheme_dict = build_scheme_dict(by_category, scheme_name, description)
     scheme_dict = clean_json(scheme_dict)
 
     scheme = Scheme.model_validate(scheme_dict)

@@ -12,3 +12,19 @@ openai==3.3.0            # test_ollama.py, test_docling_qwen.py, test_docling_gr
 docling==2.120.3         # test_docling.py, test_docling_qwen.py, test_docling_groq.py
 huggingface_hub==1.28.0  # backend/scripts/download_dataset.py
 pandas==3.0.5            # backend/scripts/profile_dataset.py
+
+# Chatbot (chatbot/) dependencies — appended, do not remove pipeline deps above
+pydantic-settings
+pymongo
+chromadb
+sentence-transformers
+langdetect
+groq
+instructor
+paddleocr
+pdf2image
+Pillow
+fastapi
+uvicorn
+websockets
+ragas

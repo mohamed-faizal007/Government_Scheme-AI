@@ -4,6 +4,7 @@ Run test: python -m chatbot.backend.rag.generator  (from repo root)
 import json
 import logging
 
+from ..llm.base import ContextTooLargeError
 from ..llm.factory import get_llm
 
 logger = logging.getLogger(__name__)
@@ -12,6 +13,13 @@ DECLINE_MESSAGE = (
     "I don't have reliable information on this. Please check the official "
     "MyScheme portal at myscheme.gov.in"
 )
+
+UNAVAILABLE_MESSAGE = (
+    "I'm currently unable to process your request. Please try again in a "
+    "moment or visit myscheme.gov.in for scheme information."
+)
+
+TRUNCATED_TOP_K = 3
 
 SYSTEM_PROMPT = """You are a government scheme assistant. You answer ONLY using the \
 retrieved scheme content provided below in the user message. You never use outside \
@@ -71,6 +79,15 @@ def _format_scheme_context(hit: dict) -> str:
     return "\n".join(lines)
 
 
+def _build_prompt(query: str, retrieved_schemes: list[dict]) -> str:
+    context = "\n\n".join(_format_scheme_context(hit) for hit in retrieved_schemes)
+    return f"""Retrieved scheme content:
+
+{context}
+
+User question: {query}"""
+
+
 def generate(query: str, retrieved_schemes: list[dict], language: str = "en") -> dict:
     if not retrieved_schemes:
         return {
@@ -80,17 +97,30 @@ def generate(query: str, retrieved_schemes: list[dict], language: str = "en") ->
             "language": language,
         }
 
-    context_blocks = [_format_scheme_context(hit) for hit in retrieved_schemes]
-    context = "\n\n".join(context_blocks)
-
-    prompt = f"""Retrieved scheme content:
-
-{context}
-
-User question: {query}"""
-
-    llm = get_llm()
-    raw = llm.generate(prompt, system=SYSTEM_PROMPT)
+    try:
+        llm = get_llm()
+        try:
+            raw = llm.generate(
+                _build_prompt(query, retrieved_schemes), system=SYSTEM_PROMPT
+            )
+        except ContextTooLargeError:
+            logger.warning(
+                "generator: context too large at top_k=%d, retrying with top_k=%d",
+                len(retrieved_schemes),
+                TRUNCATED_TOP_K,
+            )
+            retrieved_schemes = retrieved_schemes[:TRUNCATED_TOP_K]
+            raw = llm.generate(
+                _build_prompt(query, retrieved_schemes), system=SYSTEM_PROMPT
+            )
+    except Exception:
+        logger.exception("generator: LLM generation failed after all fallbacks")
+        return {
+            "answer": UNAVAILABLE_MESSAGE,
+            "sources": [],
+            "confidence": "low",
+            "language": language,
+        }
 
     answer, confidence = _parse_response(raw)
 

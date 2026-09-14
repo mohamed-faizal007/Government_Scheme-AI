@@ -4,7 +4,7 @@ import time
 from groq import APIConnectionError, APIStatusError, Groq
 
 from ..config import settings
-from .base import BaseLLM
+from .base import BaseLLM, ContextTooLargeError
 from .ollama_provider import OllamaProvider
 
 logger = logging.getLogger(__name__)
@@ -42,6 +42,9 @@ class GroqProvider(BaseLLM):
                 logger.info("llm_provider=groq model=%s", self.model)
                 return content
             except APIStatusError as exc:
+                if exc.status_code == 413:
+                    logger.warning("llm_provider=groq context_too_large")
+                    raise ContextTooLargeError(str(exc)) from exc
                 if exc.status_code == 429:
                     wait = 2 ** attempt
                     logger.warning("llm_provider=groq rate_limited retry_in=%ss attempt=%d", wait, attempt)

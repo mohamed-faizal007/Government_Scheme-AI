@@ -19,7 +19,7 @@ COMPARISON_PATTERNS = [
 
 SCHEME_SEARCH_PATTERNS = [
     r"what is", r"tell me about", r"how to apply", r"schemes for", r"benefits of",
-    r"documents required",
+    r"documents required", r"schemes? (?:are|is)?\s*available", r"available for",
 ]
 
 CATEGORY_PATTERNS = {

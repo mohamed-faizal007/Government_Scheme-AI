@@ -156,6 +156,8 @@ These affect `dataset/gov_myscheme/test_output_unstructured/` JSONs. They do not
 
 Root cause of FAQ-in-benefits: heading-vocabulary terms like `"financial assistance"` and `"benefits"` appear naturally in FAQ prose, causing the classifier to re-fire inside FAQ content and misroute it. Three structural heuristics were investigated and falsified (proximity clustering, pipeline reordering, content-window length). An LLM post-processing pass (`postprocess_faq.py`) was designed and partially validated but not used — Gemini free tier hit a 20 requests/day RPD cap, and local Qwen was rejected as too unreliable. Accepted as-is for RAG use case where field-level placement does not matter.
 
+**Tamil translation** (Phase 7): argostranslate has no en↔ta model. Tamil queries retrieve correctly (multilingual-e5-small handles Tamil natively) but answers are returned in English. Fix: install MSVC Build Tools and switch to IndicTrans2.
+
 ---
 
 ## JSON Output Schema

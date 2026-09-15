@@ -1,9 +1,9 @@
 import { useState } from 'react'
 
 const CONFIDENCE_BADGE = {
-  high: { icon: '🟢', label: 'High confidence' },
-  medium: { icon: '🟡', label: 'Medium confidence' },
-  low: { icon: '🔴', label: 'Low confidence' },
+  high: { label: '✓ Verified', className: 'bg-success-light text-success' },
+  medium: { label: '~ Inferred', className: 'bg-amber-light text-amber' },
+  low: { label: '? Uncertain', className: 'bg-[#EDF2F7] text-text-secondary' },
 }
 
 function SourceCitations({ sources }) {
@@ -12,24 +12,23 @@ function SourceCitations({ sources }) {
   if (!sources || sources.length === 0) return null
 
   return (
-    <div className="mt-2 border-t border-slate-200 pt-2">
+    <div className="mt-2 border-t border-border pt-2">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="text-xs font-medium text-slate-500 hover:text-slate-700"
+        className="text-xs font-medium text-text-secondary hover:text-primary"
       >
-        {open ? '▾' : '▸'} Sources ({sources.length})
+        {open ? '▾' : '▸'} References ({sources.length})
       </button>
       {open && (
-        <ul className="mt-1 space-y-1">
+        <ol className="mt-1.5 list-decimal space-y-1 pl-4">
           {sources.map((source, idx) => (
-            <li key={idx} className="text-xs text-slate-500">
-              {source.scheme_name}
-              {source.section ? ` › ${source.section}` : ''}
-              {source.source_file ? ` (${source.source_file})` : ''}
+            <li key={idx} className="text-xs text-text-secondary">
+              <span className="font-semibold text-text-primary">{source.scheme_name}</span>
+              {source.section ? <span> — {source.section}</span> : null}
             </li>
           ))}
-        </ul>
+        </ol>
       )}
     </div>
   )
@@ -40,19 +39,25 @@ export default function MessageBubble({ role, text, confidence, sources }) {
   const badge = confidence ? CONFIDENCE_BADGE[confidence] : null
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex items-start gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {!isUser && (
+        <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-base">
+          🏛️
+        </div>
+      )}
       <div
-        className={`max-w-[80%] rounded-lg px-4 py-2 shadow-sm sm:max-w-[70%] ${
+        className={`max-w-[80%] px-4 py-2.5 sm:max-w-[70%] ${
           isUser
-            ? 'bg-blue-600 text-white'
-            : 'border border-slate-200 bg-white text-slate-800'
+            ? 'rounded-2xl bg-primary text-white shadow-card'
+            : 'rounded-2xl border-l-[3px] border-accent bg-surface text-text-primary shadow-card'
         }`}
       >
         <p className="whitespace-pre-wrap text-sm leading-relaxed">{text}</p>
         {!isUser && badge && (
-          <div className="mt-1 flex items-center gap-1 text-xs text-slate-500">
-            <span>{badge.icon}</span>
-            <span>{badge.label}</span>
+          <div className="mt-2">
+            <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium ${badge.className}`}>
+              {badge.label}
+            </span>
           </div>
         )}
         {!isUser && <SourceCitations sources={sources} />}

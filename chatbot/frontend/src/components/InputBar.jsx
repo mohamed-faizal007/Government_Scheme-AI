@@ -1,7 +1,12 @@
 import { useRef, useState } from 'react'
-import { LANGUAGES } from '../utils/api'
 
-export default function InputBar({ language, onLanguageChange, onSend, onFileSelect, disabled }) {
+const PLACEHOLDERS = {
+  en: 'Ask about any government scheme...',
+  hi: 'किसी भी सरकारी योजना के बारे में पूछें...',
+  ta: 'எந்த அரசு திட்டத்தைப் பற்றியும் கேளுங்கள்...',
+}
+
+export default function InputBar({ language, onSend, onFileSelect, disabled }) {
   const [text, setText] = useState('')
   const fileInputRef = useRef(null)
 
@@ -26,34 +31,23 @@ export default function InputBar({ language, onLanguageChange, onSend, onFileSel
   }
 
   return (
-    <div className="border-t border-slate-200 bg-white p-3">
-      <div className="mb-2 flex justify-end gap-1">
-        {LANGUAGES.map((lang) => (
+    <div className="border-t border-border bg-surface p-3">
+      <div className="mx-auto flex max-w-3xl items-end gap-2">
+        <div className="group relative shrink-0">
           <button
-            key={lang.code}
             type="button"
-            onClick={() => onLanguageChange(lang.code)}
-            className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-              language === lang.code
-                ? 'bg-blue-600 text-white'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-            }`}
+            onClick={() => fileInputRef.current?.click()}
+            disabled={disabled}
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-primary text-primary transition-colors hover:bg-primary-light disabled:opacity-50"
           >
-            {lang.label}
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5">
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48" />
+            </svg>
           </button>
-        ))}
-      </div>
-
-      <div className="flex items-end gap-2">
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={disabled}
-          title="Upload a document (PDF)"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-slate-300 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
-        >
-          📎
-        </button>
+          <span className="pointer-events-none absolute bottom-full left-1/2 mb-2 w-max max-w-[200px] -translate-x-1/2 rounded-md bg-text-primary px-2 py-1 text-center text-[11px] text-white opacity-0 transition-opacity group-hover:opacity-100">
+            Upload income certificate or Aadhaar
+          </span>
+        </div>
         <input
           ref={fileInputRef}
           type="file"
@@ -62,21 +56,23 @@ export default function InputBar({ language, onLanguageChange, onSend, onFileSel
           onChange={handleFileChange}
         />
 
-        <textarea
-          rows={1}
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={handleKeyDown}
-          disabled={disabled}
-          placeholder="Ask about a government scheme..."
-          className="min-h-10 flex-1 resize-none rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:bg-slate-50"
-        />
+        <div className="flex min-h-11 flex-1 items-center rounded-full border border-border bg-bg px-4 py-2 transition-colors focus-within:border-primary">
+          <textarea
+            rows={1}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={handleKeyDown}
+            disabled={disabled}
+            placeholder={PLACEHOLDERS[language] || PLACEHOLDERS.en}
+            className="max-h-32 w-full resize-none bg-transparent text-sm text-text-primary placeholder:text-text-secondary focus:outline-none disabled:opacity-50"
+          />
+        </div>
 
         <button
           type="button"
           onClick={submit}
           disabled={disabled || !text.trim()}
-          className="h-10 shrink-0 rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="h-11 shrink-0 rounded-full bg-accent px-5 text-sm font-semibold text-white shadow-card transition-colors hover:bg-accent-hover disabled:opacity-50"
         >
           Send
         </button>

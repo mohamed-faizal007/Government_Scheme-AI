@@ -2,17 +2,20 @@
 Run: uvicorn chatbot.backend.api.main:app --reload --port 8000  (from repo root)
 """
 import logging
+import tempfile
 import uuid
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketState
 
 from ..database.load_chroma import COLLECTION_NAME as CHROMA_COLLECTION_NAME
 from ..database.mongo_client import get_schemes_collection
+from ..documents.extractor import autofill_profile, extract_fields
+from ..documents.ocr import extract_text
 from ..eligibility.rules_engine import check_eligibility
 from ..eligibility.slot_filler import get_next_question
 from ..eligibility.user_profile import UserProfile
@@ -113,6 +116,8 @@ class ChatResponse(BaseModel):
     intent: str
     language: str
     session_id: str
+    profile: dict = Field(default_factory=dict)
+    eligibility_results: list = Field(default_factory=list)
 
 
 class ProfileRequest(BaseModel):
@@ -155,6 +160,7 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
             "answer": translate(next_question, source_lang="en", target_lang=language),
             "sources": [],
             "confidence": "medium",
+            "eligibility_results": [],
         }
 
     candidates = retrieve(message, top_k=3)
@@ -168,10 +174,12 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
             ),
             "sources": [],
             "confidence": "low",
+            "eligibility_results": [],
         }
 
     lines = []
     sources = []
+    eligibility_results = []
     any_unverifiable = False
     seen_schemes = set()
     for hit in candidates:
@@ -186,15 +194,24 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
 
         if result["eligible"]:
             lines.append(f"You appear to be ELIGIBLE for {scheme_name}.")
+            reasons = []
         else:
-            reasons = "; ".join(result["failed_conditions"]) or "some conditions are not met"
-            lines.append(f"You do NOT appear to be eligible for {scheme_name} ({reasons}).")
+            reasons = result["failed_conditions"] or ["some conditions are not met"]
+            lines.append(f"You do NOT appear to be eligible for {scheme_name} ({'; '.join(reasons)}).")
 
         if result["unverifiable_conditions"]:
             lines.append(
                 f"Some conditions for {scheme_name} could not be verified automatically: "
                 + "; ".join(result["unverifiable_conditions"])
             )
+
+        eligibility_results.append(
+            {
+                "scheme_name": scheme_name,
+                "eligible": result["eligible"],
+                "reasons": reasons + result["unverifiable_conditions"],
+            }
+        )
 
         sources.append(
             {"scheme_name": scheme_name, "section": "eligibility", "source_file": hit["source_file"]}
@@ -207,6 +224,7 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
         "answer": translate(answer_text, source_lang="en", target_lang=language),
         "sources": sources,
         "confidence": confidence,
+        "eligibility_results": eligibility_results,
     }
 
 
@@ -239,12 +257,14 @@ def _process_message(message: str, session_id: Optional[str], language_override:
     intent = classification["intent"]
     _apply_entities(profile, classification["extracted_entities"])
 
+    eligibility_results = []
     if intent == "scheme_search" or intent == "comparison":
         result = rag_answer(message, language=language)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
     elif intent == "eligibility_check":
         result = _handle_eligibility(profile, message, language)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
+        eligibility_results = result["eligibility_results"]
     elif intent == "document_upload":
         answer_text = translate(DOCUMENT_UPLOAD_PROMPT, source_lang="en", target_lang=language)
         sources, confidence = [], "medium"
@@ -262,6 +282,8 @@ def _process_message(message: str, session_id: Optional[str], language_override:
         "intent": intent,
         "language": language,
         "session_id": sid,
+        "profile": profile.model_dump(),
+        "eligibility_results": eligibility_results,
     }
 
 
@@ -302,6 +324,38 @@ def update_profile(request: ProfileRequest):
 def chat(request: ChatRequest):
     result = _process_message(request.message, request.session_id, request.language)
     return ChatResponse(**result)
+
+
+@app.post("/document/upload")
+async def upload_document(file: UploadFile = File(...), session_id: Optional[str] = Form(None)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported.")
+
+    sid, session = _get_session(session_id)
+
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as tmp:
+        tmp.write(await file.read())
+        tmp_path = tmp.name
+
+    try:
+        ocr_result = extract_text(tmp_path)
+        extracted = extract_fields(ocr_result["text"])
+        fill_result = autofill_profile(extracted, session["profile"])
+        session["profile"] = fill_result["updated_profile"]
+    finally:
+        import os
+
+        os.unlink(tmp_path)
+
+    return {
+        "session_id": sid,
+        "fields": extracted["fields"].model_dump(),
+        "confidence": extracted["confidence"],
+        "profile": fill_result["updated_profile"].model_dump(),
+        "high_confidence_fills": fill_result["high_confidence_fills"],
+        "needs_confirmation": fill_result["needs_confirmation"],
+        "failed_fields": fill_result["failed_fields"],
+    }
 
 
 @app.websocket("/ws/chat")

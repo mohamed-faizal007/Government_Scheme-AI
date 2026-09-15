@@ -29,3 +29,4 @@ fastapi
 uvicorn
 websockets
 ragas
+certifi

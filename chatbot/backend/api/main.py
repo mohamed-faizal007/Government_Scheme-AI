@@ -16,7 +16,7 @@ from ..database.load_chroma import COLLECTION_NAME as CHROMA_COLLECTION_NAME
 from ..database.mongo_client import get_schemes_collection
 from ..documents.extractor import autofill_profile, extract_fields
 from ..documents.ocr import extract_text
-from ..eligibility.rules_engine import check_eligibility
+from ..eligibility.rules_engine import _is_junk, check_eligibility
 from ..eligibility.slot_filler import get_next_question
 from ..eligibility.user_profile import UserProfile
 from ..rag.rag_chain import answer as rag_answer
@@ -201,7 +201,8 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
         seen_schemes.add(scheme_name)
 
         result = check_eligibility(profile, hit["scheme"])
-        if result["unverifiable_conditions"]:
+        unverifiable = [u for u in result["unverifiable_conditions"] if not _is_junk(u)]
+        if unverifiable:
             any_unverifiable = True
 
         if result["eligible"]:
@@ -211,17 +212,17 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
             reasons = result["failed_conditions"] or ["some conditions are not met"]
             lines.append(f"You do NOT appear to be eligible for {scheme_name} ({'; '.join(reasons)}).")
 
-        if result["unverifiable_conditions"]:
+        if unverifiable:
             lines.append(
                 f"Some conditions for {scheme_name} could not be verified automatically: "
-                + "; ".join(result["unverifiable_conditions"])
+                + "; ".join(unverifiable)
             )
 
         eligibility_results.append(
             {
                 "scheme_name": scheme_name,
                 "eligible": result["eligible"],
-                "reasons": reasons + result["unverifiable_conditions"],
+                "reasons": reasons + unverifiable,
             }
         )
 

@@ -213,6 +213,9 @@ def check_eligibility(profile: UserProfile, scheme: dict) -> dict:
 
     reasons = [r for r in reasons if not _is_junk(r)]
     failed_conditions = [f for f in failed_conditions if not _is_junk(f)]
+    unverifiable_conditions = [
+        _truncate(u) for u in unverifiable_conditions if not _is_junk(u)
+    ]
 
     return {
         "eligible": eligible,

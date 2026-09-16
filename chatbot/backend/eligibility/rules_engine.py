@@ -32,6 +32,31 @@ def _to_amount(number_str: str, unit: str | None) -> float:
 
 _NON_THRESHOLD_PATTERN = r"\bpriority\b|\bpreference\b|\bnote\b|\badditional\b|\bweightage\b"
 
+_MAX_REASON_LEN = 120
+
+_JUNK_PUNCT_ONLY = re.compile(r"^[\s\W_]+$")
+
+
+def _truncate(text: str) -> str:
+    if len(text) > _MAX_REASON_LEN:
+        return text[:_MAX_REASON_LEN] + "..."
+    return text
+
+
+def _is_junk(text: str) -> bool:
+    stripped = text.strip()
+    if len(stripped) < 10:
+        return True
+    if _JUNK_PUNCT_ONLY.match(stripped):
+        return True
+    if stripped.endswith("?"):
+        body = stripped.rstrip("?").strip()
+        # Fragments like "also applicable ?" have real words but no substance —
+        # too few words to be a genuine question or condition.
+        if len(body) < 10 or len(body.split()) < 3:
+            return True
+    return False
+
 
 def _check_age(text: str, age: int | None) -> str | None:
     t = text.lower()
@@ -171,9 +196,9 @@ def check_eligibility(profile: UserProfile, scheme: dict) -> dict:
     for condition in conditions:
         result = _evaluate(condition, profile)
         if result == "pass":
-            reasons.append(f"Meets condition: {condition}")
+            reasons.append(_truncate(f"Meets condition: {condition}"))
         elif result == "fail":
-            failed_conditions.append(condition)
+            failed_conditions.append(_truncate(condition))
             eligible = False
         else:
             unverifiable_conditions.append(condition)
@@ -181,10 +206,13 @@ def check_eligibility(profile: UserProfile, scheme: dict) -> dict:
     for exclusion in exclusions:
         result = _evaluate(exclusion, profile)
         if result == "pass":
-            failed_conditions.append(f"Excluded: {exclusion}")
+            failed_conditions.append(_truncate(f"Excluded: {exclusion}"))
             eligible = False
         elif result == "unverifiable":
             unverifiable_conditions.append(exclusion)
+
+    reasons = [r for r in reasons if not _is_junk(r)]
+    failed_conditions = [f for f in failed_conditions if not _is_junk(f)]
 
     return {
         "eligible": eligible,

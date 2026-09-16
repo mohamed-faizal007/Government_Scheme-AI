@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const PLACEHOLDERS = {
   en: 'Ask about any government scheme...',
@@ -6,9 +6,16 @@ const PLACEHOLDERS = {
   ta: 'எந்த அரசு திட்டத்தைப் பற்றியும் கேளுங்கள்...',
 }
 
-export default function InputBar({ language, onSend, onFileSelect, disabled }) {
+export default function InputBar({ language, onSend, onFileSelect, disabled, prefill }) {
   const [text, setText] = useState('')
   const fileInputRef = useRef(null)
+  const textareaRef = useRef(null)
+
+  useEffect(() => {
+    if (!prefill) return
+    setText(prefill.text)
+    textareaRef.current?.focus()
+  }, [prefill?.id])
 
   const submit = () => {
     const trimmed = text.trim()
@@ -26,7 +33,7 @@ export default function InputBar({ language, onSend, onFileSelect, disabled }) {
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
-    if (file) onFileSelect(file)
+    if (file) onFileSelect?.(file)
     e.target.value = ''
   }
 
@@ -58,6 +65,7 @@ export default function InputBar({ language, onSend, onFileSelect, disabled }) {
 
         <div className="flex min-h-11 flex-1 items-center rounded-full border border-border bg-bg px-4 py-2 transition-colors focus-within:border-primary">
           <textarea
+            ref={textareaRef}
             rows={1}
             value={text}
             onChange={(e) => setText(e.target.value)}

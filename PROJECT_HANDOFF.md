@@ -231,6 +231,20 @@ Note: `overview.description` is populated for 100% of files (orphan content capt
 
 ---
 
+## Chatbot Evaluation Results
+
+Evaluation harness: `chatbot/evaluation/`.
+
+| Metric | Result |
+|---|---|
+| Eligibility accuracy | 95% (19/20) |
+| Source citation rate | 28% |
+| Out-of-scope decline rate | 100% |
+
+**Known limitation:** Hindi/Tamil queries misroute to `out_of_scope`. The intent classifier (`chatbot/backend/router/intent_classifier.py`) is English-only regex, so non-English input never matches an intent pattern and falls through to the out-of-scope path regardless of the query's actual content.
+
+---
+
 ## What to Do Next
 
 ### Immediate — Start Chatbot Build

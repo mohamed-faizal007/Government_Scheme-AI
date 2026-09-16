@@ -37,3 +37,72 @@ body {
 .landing-transition {
   transition: opacity 300ms ease, max-height 300ms ease, transform 300ms ease;
 }
+
+.hero-section {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #0F3460 0%, #1a1a2e 50%, #16213E 100%);
+}
+
+.hero-grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.06) 0px, rgba(255, 255, 255, 0.06) 1px, transparent 1px, transparent 48px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0px, rgba(255, 255, 255, 0.06) 1px, transparent 1px, transparent 48px);
+}
+
+.hero-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  pointer-events: none;
+}
+
+.hero-blob-1 {
+  top: -80px;
+  left: -60px;
+  width: 320px;
+  height: 320px;
+  background: #E94560;
+  opacity: 0.25;
+}
+
+.hero-blob-2 {
+  top: 20%;
+  right: -100px;
+  width: 380px;
+  height: 380px;
+  background: #1B4FD8;
+  opacity: 0.3;
+}
+
+.hero-blob-3 {
+  bottom: -120px;
+  left: 20%;
+  width: 300px;
+  height: 300px;
+  background: #E94560;
+  opacity: 0.15;
+}
+
+.hero-blob-4 {
+  bottom: 10%;
+  right: 15%;
+  width: 220px;
+  height: 220px;
+  background: #1B4FD8;
+  opacity: 0.2;
+}
+
+.hero-mockup-card {
+  background: rgba(13, 27, 42, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 60px rgba(233, 69, 96, 0.2), 0 8px 24px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(6px);
+}
+
+.feature-card {
+  border-top: 3px solid #0F3460;
+}

@@ -46,8 +46,14 @@ AGE_PATTERNS = [
 ]
 
 INCOME_PATTERNS = [
-    r"income\s*(?:of|is|:)?\s*(?:rs\.?|₹|rupees)?\s*([\d.]+)\s*(lakh|lakhs|crore|crores)?",
-    r"earn\s*(?:rs\.?|₹|rupees)?\s*([\d.]+)\s*(lakh|lakhs|crore|crores)?",
+    # Keyword-led: "income of/is/: <amount> [lakh|crore]" or "earn <amount> [...]"
+    r"income\s*(?:of|is|:)?\s*(?:rs\.?|₹|rupees)?\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)?",
+    r"earn\s*(?:rs\.?|₹|rupees)?\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)?",
+    # Bare amount with an explicit unit, e.g. "1.2 lakhs", "2 lakh" — no keyword needed.
+    r"(?:rs\.?|₹|rupees)?\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)",
+    # A message that is *only* a number (optionally comma-grouped/₹-prefixed), e.g.
+    # "1,20,000" or "50000" — the typical reply to a direct income question.
+    r"^\s*(?:rs\.?|₹|rupees)?\s*([\d,]{4,}(?:\.\d+)?)\s*()$",
 ]
 
 MULTIPLIERS = {
@@ -89,7 +95,7 @@ def extract_entities(query: str) -> dict:
     for pattern in INCOME_PATTERNS:
         match = re.search(pattern, query, re.IGNORECASE)
         if match:
-            amount = float(match.group(1))
+            amount = float(match.group(1).replace(",", ""))
             unit = (match.group(2) or "").lower()
             multiplier = MULTIPLIERS.get(unit, 1)
             entities["income"] = amount * multiplier

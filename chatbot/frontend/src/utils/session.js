@@ -10,3 +10,9 @@ export function getSessionId() {
   }
   return sessionId
 }
+
+export function resetSessionId() {
+  const sessionId = uuidv4()
+  localStorage.setItem(SESSION_KEY, sessionId)
+  return sessionId
+}

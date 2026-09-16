@@ -1,12 +1,12 @@
 import axios from 'axios'
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import ChatWindow from './components/ChatWindow'
 import ConnectionBanner from './components/ConnectionBanner'
 import EligibilityPanel from './components/EligibilityPanel'
 import InputBar from './components/InputBar'
 import { useChatSocket } from './hooks/useChatSocket'
 import { API_BASE, LANGUAGES } from './utils/api'
-import { getSessionId } from './utils/session'
+import { getSessionId, resetSessionId } from './utils/session'
 
 const FEATURE_PILLS = [
   { icon: '🔍', label: 'Scheme Search' },
@@ -21,7 +21,7 @@ function nextId() {
 }
 
 export default function App() {
-  const sessionId = useMemo(() => getSessionId(), [])
+  const [sessionId, setSessionId] = useState(() => getSessionId())
   const [language, setLanguage] = useState('en')
   const [messages, setMessages] = useState([])
   const [isTyping, setIsTyping] = useState(false)
@@ -124,6 +124,15 @@ export default function App() {
     }
   }
 
+  const handleNewConversation = () => {
+    setSessionId(resetSessionId())
+    setMessages([])
+    setProfile({})
+    setEligibilityMode(false)
+    setEligibilityResults([])
+    setIsTyping(false)
+  }
+
   const latestEligibility = eligibilityResults[0]
     ? { eligible: eligibilityResults[0].eligible, reasons: eligibilityResults[0].reasons }
     : null
@@ -133,9 +142,16 @@ export default function App() {
   return (
     <div className="flex h-screen w-screen flex-col bg-bg">
       <header className="flex items-center justify-between border-b border-primary-hover bg-primary px-4 py-3">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="text-2xl">🏛️</span>
           <span className="font-display text-base font-bold text-white">SchemeBot</span>
+          <button
+            type="button"
+            onClick={handleNewConversation}
+            className="rounded-full border border-white/40 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-white/10"
+          >
+            New Conversation
+          </button>
         </div>
         <div className="flex gap-1">
           {LANGUAGES.map((lang) => (

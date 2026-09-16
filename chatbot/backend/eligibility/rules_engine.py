@@ -30,8 +30,13 @@ def _to_amount(number_str: str, unit: str | None) -> float:
     return value * _AMOUNT_UNITS.get((unit or "").lower(), 1)
 
 
+_NON_THRESHOLD_PATTERN = r"\bpriority\b|\bpreference\b|\bnote\b|\badditional\b|\bweightage\b"
+
+
 def _check_age(text: str, age: int | None) -> str | None:
     t = text.lower()
+    if re.search(_NON_THRESHOLD_PATTERN, t):
+        return None
     m = re.search(r"between\s*(\d+)\s*(?:and|-)\s*(\d+)\s*years?", t)
     if m:
         lo, hi = int(m.group(1)), int(m.group(2))
@@ -62,14 +67,29 @@ def _check_income(text: str, income: float | None) -> str | None:
     if re.search(r"\bbpl\b|\bapl\b", t):
         return "unverifiable"  # no explicit numeric threshold given — never guess
 
-    m = re.search(r"(?:exceeding|more than|above)\s*(?:rs\.?|₹)?\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)?", t)
+    # Currency symbol/unit is required (not optional) so bare numbers in unrelated
+    # clauses (e.g. "above 21 years of age") never get misread as income amounts.
+    m = re.search(
+        r"(?:exceeding|more than|above)\s*(?:rs\.?|₹)\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)?"
+        r"|(?:exceeding|more than|above)\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)",
+        t,
+    )
     if m:
-        value = _to_amount(m.group(1), m.group(2))
+        number = m.group(1) or m.group(3)
+        unit = m.group(2) or m.group(4)
+        value = _to_amount(number, unit)
         return "unverifiable" if income is None else ("pass" if income <= value else "fail")
 
-    m = re.search(r"(?:less than|below|not exceeding|up to)\s*(?:rs\.?|₹)?\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)?", t)
+    below_keywords = r"less than|below|not exceeding|(?:shall|should|does|do)\s+not\s+exceed|up to"
+    m = re.search(
+        rf"(?:{below_keywords})\s*(?:rs\.?|₹)\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)?"
+        rf"|(?:{below_keywords})\s*([\d,]+(?:\.\d+)?)\s*(lakh|lakhs|crore|crores)",
+        t,
+    )
     if m:
-        value = _to_amount(m.group(1), m.group(2))
+        number = m.group(1) or m.group(3)
+        unit = m.group(2) or m.group(4)
+        value = _to_amount(number, unit)
         return "unverifiable" if income is None else ("pass" if income <= value else "fail")
 
     if re.search(r"\bincome\b", t):
@@ -115,20 +135,27 @@ def _check_state(text: str, profile: UserProfile) -> str | None:
 
 
 def _evaluate(text: str, profile: UserProfile) -> str:
+    results = []
     for checker, value in ((_check_age, profile.age), (_check_income, profile.income_annual)):
         result = checker(text, value)
         if result is not None:
-            return result
+            results.append(result)
 
     result = _check_category(text, profile)
     if result is not None:
-        return result
+        results.append(result)
 
     result = _check_state(text, profile)
     if result is not None:
-        return result
+        results.append(result)
 
-    return "unverifiable"
+    if not results:
+        return "unverifiable"
+    if "fail" in results:
+        return "fail"
+    if "unverifiable" in results:
+        return "unverifiable"
+    return "pass"
 
 
 def check_eligibility(profile: UserProfile, scheme: dict) -> dict:

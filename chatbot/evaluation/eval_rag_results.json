@@ -1,0 +1,1013 @@
+{
+  "metrics": {
+    "total_queries": 50,
+    "out_of_scope_total": 10,
+    "out_of_scope_declined": 10,
+    "decline_rate_pct": 100.0,
+    "source_citation_rate_pct": 28.0,
+    "avg_response_time_s": 12.806,
+    "retrieval_spot_check_hits": 7,
+    "retrieval_spot_check_total": 10,
+    "retrieval_spot_check_pct": 70.0
+  },
+  "results": [
+    {
+      "id": 1,
+      "category": "scheme_search",
+      "query": "Tell me about the Atal Pension Yojana",
+      "answer": "The Atal Pension Yojana (APY) is an old age income security scheme targeted primarily at the poor, under‑privileged, and workers in the unorganized sector. It is open to savings‑bank account holders aged 18 to 40 years who are not income‑tax payers. Subscribers contribute a prescribed amount—through auto‑debit from their savings account—every month, quarter, or half‑year until they reach 60 years. After 60 years, subscribers receive a guaranteed minimum pension ranging from ₹1,000 to ₹5,000 per month, with the spouse entitled to the same amount upon the subscriber’s demise. The scheme also allows voluntary exit before 60 years, in which case only the contributions plus accrued income (excluding government co‑contribution for early‑joining subscribers) are refunded. APY is managed by the Pension Fund Regulatory and Development Authority (PFRDA); it is accessible via online platforms such as the e‑APY portal, banks’ internet‑banking, or the NSDL website. KYC is conducted through Aadhaar or other bank‑issued documents, and the scheme requires a savings or post‑office account for participation. For more details, you can visit the official portal at https://enps.nsdl.com/e and contact the helpline at 1800‑110‑069.",
+      "sources": [
+        {
+          "scheme_name": "Atal Asra Yojana",
+          "section": "description",
+          "source_file": "aay-goa copy.json"
+        },
+        {
+          "scheme_name": "Atal Pension Yojana",
+          "section": "application",
+          "source_file": "apy copy.json"
+        },
+        {
+          "scheme_name": "Antya Sanskar Sahay Yojana",
+          "section": "description",
+          "source_file": "assy-goa copy.json"
+        },
+        {
+          "scheme_name": "Beti Hai Anmol Yojana",
+          "section": "eligibility",
+          "source_file": "bhay.json"
+        },
+        {
+          "scheme_name": "Atma Nirbhar Krishi Yojana",
+          "section": "application",
+          "source_file": "anky copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 8.56,
+      "error": null
+    },
+    {
+      "id": 2,
+      "category": "scheme_search",
+      "query": "What is the Aam Aadmi Bima Yojana?",
+      "answer": "Aam Aadmi Bima Yojana (AABY) is a government‑sponsored social security scheme launched in 2007, administered by the Life Insurance Corporation of India (LIC). It aims to provide affordable life‑insurance coverage to the unorganised sector, particularly those working in agriculture, fishery, dairy, handloom, construction and similar occupations. The scheme covers natural death (₹30,000), accidental death (₹75,000) and partial or permanent disability due to an accident (₹37,500), with an additional scholarship add‑on for the insured’s children in case of death. The annual premium is ₹200 per person, shared 50:50 between the central and state governments, with the beneficiary paying the remaining ₹70. The head of the family or the earning member aged 18‑59 is eligible, and the premium is deducted automatically via ECS or other modes. The scheme is designed to offer financial support to families of the economically weaker sections in case of unforeseen events.",
+      "sources": [
+        {
+          "scheme_name": "Aam Aadmi Bima Yojana",
+          "section": "description",
+          "source_file": "aaby copy.json"
+        },
+        {
+          "scheme_name": "Bima Yojana - Direct Benefit to Artisan",
+          "section": "benefits",
+          "source_file": "bydbta.json"
+        },
+        {
+          "scheme_name": "Atma Nirbhar Bagwani Yojana",
+          "section": "benefits",
+          "source_file": "anby copy.json"
+        },
+        {
+          "scheme_name": "Chief Minister's Jeevan Jyoti Swaniyojan Yojana",
+          "section": "description",
+          "source_file": "cm-swaniyojan-yojana.json"
+        },
+        {
+          "scheme_name": "Coir Udyami Yojana",
+          "section": "description",
+          "source_file": "cuy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 37.814,
+      "error": null
+    },
+    {
+      "id": 3,
+      "category": "scheme_search",
+      "query": "Assam Arogya Nidhi Scheme ke baare mein bataiye",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.013,
+      "error": null
+    },
+    {
+      "id": 4,
+      "category": "scheme_search",
+      "query": "बीना मूल्य सामाजिक सुरक्षा योजना क्या है?",
+      "answer": "Bina Mulya Samajik Suraksha Yojana (BM-SSY) एक पश्चिम बंगाल सरकार योजना है जिसका उद्देश्य निर्माण कार्यकर्ताओं, परिवहन श्रमिकों और स्व-नियोजित श्रमिकों सहित सभी असंगठित श्रमिकों को सामाजिक सुरक्षा प्रदान करना है। यह लाभ की एक श्रृंखला प्रदान करता है: प्रति माह ₹55 (राज्य और लाभार्थी से ₹25 + ₹30), चिकित्सा और शल्य चिकित्सा कवरेज क्रमशः ₹20,000 तक और ₹60,000 प्रति वर्ष तक, अस्पताल में भर्ती, मृत्यु और विकलांगता भुगतान के मामले में रोजगार मुआवजे के नुकसान के मामले में ₹50,000 से ₹2,00,000 तक की अवधि के आधार पर, और मेडिकल / इंजीनियरिंग पाठ्यक्रम के लिए ₹30,000 तक की शैक्षणिक सहायता। यह योजना 18-60 वर्ष की आयु में पश्चिम बंगाल के निवासियों के लिए उपलब्ध है, जिसमें पारिवारिक आय प्रति माह ₹6,500 (निर्माण और परिवहन श्रमिकों की कोई सीमा नहीं) से अधिक नहीं है।",
+      "sources": [
+        {
+          "scheme_name": "Bina Mulya Samajik Suraksha Yojana",
+          "section": "benefits",
+          "source_file": "bmssy.json"
+        },
+        {
+          "scheme_name": "AASRA Scheme",
+          "section": "description",
+          "source_file": "aasra copy.json"
+        },
+        {
+          "scheme_name": "Asangathita Shramik Sahayika Prakalpa",
+          "section": "description",
+          "source_file": "assp copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 52.481,
+      "error": null
+    },
+    {
+      "id": 5,
+      "category": "scheme_search",
+      "query": "ஐராவதா திட்டம் பற்றி சொல்லுங்கள்",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.001,
+      "error": null
+    },
+    {
+      "id": 6,
+      "category": "scheme_search",
+      "query": "அம்மா இரு சக்கர வண்டி திட்டம் பற்றி விவரம் தேவை",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.001,
+      "error": null
+    },
+    {
+      "id": 7,
+      "category": "scheme_search",
+      "query": "Explain the Airavata Scheme for taxi drivers in Karnataka",
+      "answer": "The Airavata Scheme, a Karnataka government initiative, aims to provide self‑employment opportunities for rural SC/ST youth through the taxi sector. The scheme partners with corporate aggregators such as OLA and UBER, allowing beneficiaries to operate as Radio Taxis or other cab ventures on these platforms. Beneficiaries receive up to Rs 5 lakh subsidy to purchase a light motor vehicle, which reduces the burden of vehicle EMI. The government intends to cover around 1,000 SC/ST taxi drivers and has earmarked approximately Rs 225 crore for the programme. Eligibility requires the applicant to belong to a Scheduled Caste or Scheduled Tribe community, be a resident of Karnataka, be above 21 years of age, hold a valid driving licence and a cab badge, and have an annual family income not exceeding Rs 5 lakh. Applicants must also provide various documents such as Aadhar, PAN, bonafide certificate, and others, and undergo training with OLA or UBER before commencing operations.\n\nKey points from the Airavata Scheme: partnership with OLA/Uber, 5‑lakh vehicle subsidy, 225 crore investment, support for 1,000 SC/ST drivers, eligibility criteria including age, licence, income, and community status, and requirement for training and documentation.",
+      "sources": [
+        {
+          "scheme_name": "Airavata Scheme",
+          "section": "eligibility",
+          "source_file": "airavata copy.json"
+        },
+        {
+          "scheme_name": "Direct Loans For Business Enterprise",
+          "section": "eligibility",
+          "source_file": "dlbe copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 21.437,
+      "error": null
+    },
+    {
+      "id": 8,
+      "category": "scheme_search",
+      "query": "What benefits does the Accidental Death Assistance for Construction Workers scheme provide in Delhi?",
+      "answer": "The Accidental Death Assistance for the Construction Workers scheme in Delhi provides a compensation of ₹2,00,000/- to the nominees or dependents of a registered construction worker whose death occurs due to an accident while employed. This benefit is part of the welfare scheme managed by the Delhi Labour Department for registered workers.",
+      "sources": [
+        {
+          "scheme_name": "Accidental Death Assistance for the Construction Workers",
+          "section": "eligibility",
+          "source_file": "adacw copy.json"
+        },
+        {
+          "scheme_name": "Education Assistance for the Construction Workers",
+          "section": "eligibility",
+          "source_file": "edftcw copy.json"
+        },
+        {
+          "scheme_name": "Disability Pension for the Construction Workers",
+          "section": "eligibility",
+          "source_file": "dpcw copy.json"
+        },
+        {
+          "scheme_name": "Delhi Ladli Scheme",
+          "section": "eligibility",
+          "source_file": "dls copy.json"
+        },
+        {
+          "scheme_name": "Ex-gratia Payment for the Construction Workers",
+          "section": "eligibility",
+          "source_file": "epcw copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 45.73,
+      "error": null
+    },
+    {
+      "id": 9,
+      "category": "scheme_search",
+      "query": "प्रधानमंत्री किसान योजना की जानकारी दो",
+      "answer": "मैं केवल सरकारी योजना की जानकारी, पात्रता जांच और दस्तावेज़ सत्यापन के साथ मदद कर सकता हूं। किसी और के लिए कृपया myscheme.gov.in देखें।",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.49,
+      "error": null
+    },
+    {
+      "id": 10,
+      "category": "scheme_search",
+      "query": "Which scheme helps destitute widows in Kerala?",
+      "answer": "The scheme that helps destitute widows in Kerala is the Abhayakiranam Scheme, launched by the Department of Social Justice, Government of Kerala.",
+      "sources": [
+        {
+          "scheme_name": "Abhayakiranam Scheme-",
+          "section": "eligibility",
+          "source_file": "as-fadw copy.json"
+        },
+        {
+          "scheme_name": "Educational Assistance For Children Of Victims Of Crime",
+          "section": "eligibility",
+          "source_file": "eacvc copy.json"
+        },
+        {
+          "scheme_name": "Educational Assistance to Children of Women Headed Families",
+          "section": "eligibility",
+          "source_file": "eacwhf-kerala copy.json"
+        },
+        {
+          "scheme_name": "-to-Lab Research Fellowship Programme",
+          "section": "eligibility",
+          "source_file": "btlrfp.json"
+        },
+        {
+          "scheme_name": "Distress Relief Fund For The Differently Abled (Medical Treatment)",
+          "section": "eligibility",
+          "source_file": "drfdamt copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 50.416,
+      "error": null
+    },
+    {
+      "id": 11,
+      "category": "eligibility_check",
+      "query": "Am I eligible for Atal Pension Yojana if I am 25 years old?",
+      "answer": "Which state are you in?",
+      "sources": [],
+      "confidence": "medium",
+      "intent": "eligibility_check",
+      "response_time_s": 0.004,
+      "error": null
+    },
+    {
+      "id": 12,
+      "category": "eligibility_check",
+      "query": "I am a 70-year-old widow from Kerala with no income, can I get pension under the Abhayakiranam Scheme?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.002,
+      "error": null
+    },
+    {
+      "id": 13,
+      "category": "eligibility_check",
+      "query": "My annual income is 3 lakhs and I live in Assam, am I eligible for the Assam Arogya Nidhi Scheme?",
+      "answer": "Could you tell me your age?",
+      "sources": [],
+      "confidence": "medium",
+      "intent": "eligibility_check",
+      "response_time_s": 0.002,
+      "error": null
+    },
+    {
+      "id": 14,
+      "category": "eligibility_check",
+      "query": "I am a 40-year-old SC category driver in Bangalore, am I eligible for the Airavata Scheme?",
+      "answer": "Could you tell me your age?",
+      "sources": [],
+      "confidence": "medium",
+      "intent": "eligibility_check",
+      "response_time_s": 0.001,
+      "error": null
+    },
+    {
+      "id": 15,
+      "category": "eligibility_check",
+      "query": "मैं दिल्ली में 20 साल का निर्माण मजदूर हूं, क्या मुझे Accidental Death Assistance मिल सकती है?",
+      "answer": "मैं केवल सरकारी योजना की जानकारी, पात्रता जांच और दस्तावेज़ सत्यापन के साथ मदद कर सकता हूं। किसी और के लिए कृपया myscheme.gov.in देखें।",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.1,
+      "error": null
+    },
+    {
+      "id": 16,
+      "category": "eligibility_check",
+      "query": "Is a 65-year-old eligible for the Agri-Clinics and Agri-Business Centres Scheme?",
+      "answer": "Could you tell me your age?",
+      "sources": [],
+      "confidence": "medium",
+      "intent": "eligibility_check",
+      "response_time_s": 0.003,
+      "error": null
+    },
+    {
+      "id": 17,
+      "category": "eligibility_check",
+      "query": "I am a woman in Tamil Nadu earning 2 lakhs a year, can I apply for the Amma Two Wheeler Scheme?",
+      "answer": "Could you tell me your age?",
+      "sources": [],
+      "confidence": "medium",
+      "intent": "eligibility_check",
+      "response_time_s": 0.002,
+      "error": null
+    },
+    {
+      "id": 18,
+      "category": "eligibility_check",
+      "query": "என் வயது 60, நான் ஒரு விதவை, கேரளாவில் வசிக்கிறேன், எனக்கு உதவி கிடைக்குமா?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.001,
+      "error": null
+    },
+    {
+      "id": 19,
+      "category": "eligibility_check",
+      "query": "I'm 22 and live in Puducherry, am I eligible for the Advance High Skill Training scheme?",
+      "answer": "Could you tell me your age?",
+      "sources": [],
+      "confidence": "medium",
+      "intent": "eligibility_check",
+      "response_time_s": 0.002,
+      "error": null
+    },
+    {
+      "id": 20,
+      "category": "eligibility_check",
+      "query": "My family income is Rs 6 lakh a year, are we eligible for any BPL scholarship scheme?",
+      "answer": "Could you tell me your age?",
+      "sources": [],
+      "confidence": "medium",
+      "intent": "eligibility_check",
+      "response_time_s": 0.002,
+      "error": null
+    },
+    {
+      "id": 21,
+      "category": "benefits_documents",
+      "query": "What documents are required to apply for Atal Pension Yojana?",
+      "answer": "To apply for Atal Pension Yojana, the required document is the KYC details which are fetched from the subscriber’s active Bank or Post Office Savings account. The scheme states that KYC can be completed by uploading an XML file of Aadhaar, by OTP verification on the mobile number registered with Aadhaar, or by creating an Aadhaar Virtual ID.\n\nSource: Atal Pension Yojana scheme content.",
+      "sources": [
+        {
+          "scheme_name": "Atal Pension Yojana",
+          "section": "application",
+          "source_file": "apy copy.json"
+        },
+        {
+          "scheme_name": "Atal Sneh Yojana",
+          "section": "application",
+          "source_file": "asyg copy.json"
+        },
+        {
+          "scheme_name": "Atal Asra Yojana",
+          "section": "application",
+          "source_file": "aay-goa copy.json"
+        },
+        {
+          "scheme_name": "Divyang Pension Yojana",
+          "section": "application",
+          "source_file": "dpyup copy.json"
+        },
+        {
+          "scheme_name": "Atal Awasiya Vidyala Yojana",
+          "section": "application",
+          "source_file": "aavy copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 42.628,
+      "error": null
+    },
+    {
+      "id": 22,
+      "category": "benefits_documents",
+      "query": "What is the benefit amount under the Assam Arogya Nidhi Scheme?",
+      "answer": "The Assam Arogya Nidhi Scheme provides a maximum benefit of ₹3 lakh to eligible beneficiaries.",
+      "sources": [
+        {
+          "scheme_name": "Assam Arogya Nidhi Scheme",
+          "section": "eligibility",
+          "source_file": "aan copy.json"
+        },
+        {
+          "scheme_name": "Atal Amrit Abhiyan Scheme",
+          "section": "eligibility",
+          "source_file": "aaas-assam copy.json"
+        },
+        {
+          "scheme_name": "Assam Orunodoi Scheme",
+          "section": "eligibility",
+          "source_file": "aos copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 51.551,
+      "error": null
+    },
+    {
+      "id": 23,
+      "category": "benefits_documents",
+      "query": "How much subsidy do I get under the Airavata Scheme?",
+      "answer": "Under the Airavata Scheme the Karnataka Government offers a subsidy of up to Rs. 5 lakh (₹5,00,000) to help beneficiaries purchase a light motor vehicle; the subsidy covers 50 % of the vehicle cost, with the remaining amount to be arranged by the applicant.",
+      "sources": [
+        {
+          "scheme_name": "Airavata Scheme",
+          "section": "benefits",
+          "source_file": "airavata copy.json"
+        },
+        {
+          "scheme_name": "Anti Bird Net",
+          "section": "benefits",
+          "source_file": "abn copy.json"
+        },
+        {
+          "scheme_name": "Capital Subsidy",
+          "section": "benefits",
+          "source_file": "cs-tn.json"
+        },
+        {
+          "scheme_name": "Bank Tie-Up Scheme",
+          "section": "benefits",
+          "source_file": "btus.json"
+        },
+        {
+          "scheme_name": "ARAVANAIPPUAre you sure you want to sign out?",
+          "section": "description",
+          "source_file": "a-pudu copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 47.635,
+      "error": null
+    },
+    {
+      "id": 24,
+      "category": "benefits_documents",
+      "query": "What documents do I need for the Amma Two Wheeler Scheme?",
+      "answer": "For the Amma Two Wheeler Scheme, you must submit the following documents:\n• Proof of age (18–40 years) – e.g., date‑of‑birth certificate or equivalent.\n• Proof of residence – EPIC card, driving license, Aadhaar card, utility bill, etc., in your name.\n• A valid Two‑Wheeler Learner License Registration (LLR) or driving licence.\n• Income certificate issued by your employer or a self‑certification of income.\n• Proof of employment – certificate from the employer/organization/ project head if you are a wage or salaried employee.\n• Aadhaar card.\n• Proof of educational qualification or appearance for the 8th standard examination – e.g., transfer certificate, SSLC, etc.\n• A passport‑size photograph.\n• Proof of membership in any priority category (if applicable) – e.g., community certificate for SC/ST.\n• For SC/ST applicants, a community certificate.\n• For differently‑abled applicants, a different‑abled identity card issued by a competent authority.\n• Quotation or pro‑forma invoice of the two‑wheel vehicle you intend to purchase.\nNote that the driving licence (or LLR) and proof of age are mandatory at the time of application.",
+      "sources": [
+        {
+          "scheme_name": "Amma Two Wheeler Scheme for Working Women",
+          "section": "description",
+          "source_file": "atwsfww copy.json"
+        },
+        {
+          "scheme_name": "Aravanaippu Illam",
+          "section": "application",
+          "source_file": "aillam copy.json"
+        },
+        {
+          "scheme_name": "Aamar Dukan On Wheels",
+          "section": "eligibility",
+          "source_file": "adow copy.json"
+        },
+        {
+          "scheme_name": "Dr. B.",
+          "section": "application",
+          "source_file": "dbramascs copy.json"
+        },
+        {
+          "scheme_name": "Distribution of Free House Sites to Scheduled Caste/Other Economically Backward Classes",
+          "section": "application",
+          "source_file": "dfhsscoebc copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 48.354,
+      "error": null
+    },
+    {
+      "id": 25,
+      "category": "benefits_documents",
+      "query": "असम अरोग्य निधि योजना के तहत क्या लाभ मिलता है?",
+      "answer": "मैं केवल सरकारी योजना की जानकारी, पात्रता जांच और दस्तावेज़ सत्यापन के साथ मदद कर सकता हूं। किसी और के लिए कृपया myscheme.gov.in देखें।",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.144,
+      "error": null
+    },
+    {
+      "id": 26,
+      "category": "benefits_documents",
+      "query": "ஐராவதா திட்டத்தில் என்ன ஆவணங்கள் தேவை?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.002,
+      "error": null
+    },
+    {
+      "id": 27,
+      "category": "benefits_documents",
+      "query": "What is the process to apply for Accidental Death Assistance for Construction Workers?",
+      "answer": "To apply for the **Accidental Death Assistance for the Construction Workers** (Delhi) scheme, follow these steps:\n\n1. **Visit the DBo CWWB website** and click “Apply for Scheme” or “Register Now”.\n2. **Log in** using your Aadhaar number, registration card or OTP.\n3. **Apply** for the “Death Assistance” scheme.\n4. **Upload required documents** – original death certificate, photocopy of the nominee’s Aadhar card, photocopy of the first page of the nominee’s bank passbook or cancelled cheque, and the FIR/Medico‑Legal Report.\n5. **Enter bank account details** for direct benefit transfer.\n6. **Submit an affidavit** of the applicant (if required).\n7. **Pay the online registration fee** of ₹25 through debit card, internet banking or UPI.\n8. **Enter the OTP** received on your registered mobile number and confirm the application.\n9. **Note down the application number** for future reference and download the acknowledgement receipt.\n10. **Track the application status** on the website under “Track Your Application”.\n\nThese steps are taken from the scheme description and application procedure for the Accidental Death Assistance for the Construction Workers as administered by the Delhi Building and Other Construction Workers Welfare Board.",
+      "sources": [
+        {
+          "scheme_name": "Accidental Death Assistance Scheme (GBOCWWB)",
+          "section": "benefits",
+          "source_file": "adasgbocwwb copy.json"
+        },
+        {
+          "scheme_name": "Accidental Death Assistance for the Construction Workers",
+          "section": "description",
+          "source_file": "adacw copy.json"
+        },
+        {
+          "scheme_name": "Accidental Death Benefit Scheme (PBAOCWWB)",
+          "section": "benefits",
+          "source_file": "adbs-pbaocwwb copy.json"
+        },
+        {
+          "scheme_name": "Assistance Scheme For Construction Worker In Case Of General Or Accidental Death Or Injury",
+          "section": "description",
+          "source_file": "asfcw copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 37.449,
+      "error": null
+    },
+    {
+      "id": 28,
+      "category": "benefits_documents",
+      "query": "How do I claim benefits under the Aam Aadmi Bima Yojana?",
+      "answer": "To claim benefits under the **Aam Aadmi Bima Yojana (AABY)**, the nominee of the insured person must: 1. **Prepare the required documents** – a completed claim form, a death certificate (and a post‑mortem report if the death was accidental), a disability certificate for partial or permanent disability claims, and the nominee’s bank account details. 2. **Submit the claim form** to a Life Insurance Corporation of India (LIC) branch office or any other authorized office **within 30 days** of the incident. 3. The claim will be **processed by the respective state government**, and once approved the amount is transferred electronically to the nominee’s bank account.",
+      "sources": [
+        {
+          "scheme_name": "Aam Aadmi Bima Yojana",
+          "section": "description",
+          "source_file": "aaby copy.json"
+        },
+        {
+          "scheme_name": "Bima Yojana - Direct Benefit to Artisan",
+          "section": "benefits",
+          "source_file": "bydbta.json"
+        },
+        {
+          "scheme_name": "Atal Beemit Vyakti Kalyan Yojana",
+          "section": "application",
+          "source_file": "abvky copy.json"
+        },
+        {
+          "scheme_name": "Aravanaippu Illam",
+          "section": "benefits",
+          "source_file": "aillam copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 50.796,
+      "error": null
+    },
+    {
+      "id": 29,
+      "category": "benefits_documents",
+      "query": "What identity proof documents are accepted for the Bina Mulya Samajik Suraksha Yojana?",
+      "answer": "For the Bina Mulya Samajik Suraksha Yojana, the accepted identity proof documents are an Aadhar Card, a Voter ID Card, and an EPIC (Electronic Person Identification Card). Additionally, a photograph and signature are mandatory for the application.",
+      "sources": [
+        {
+          "scheme_name": "Bina Mulya Samajik Suraksha Yojana",
+          "section": "application",
+          "source_file": "bmssy.json"
+        },
+        {
+          "scheme_name": "Balika Samrithi Yojana",
+          "section": "eligibility",
+          "source_file": "bsy-pudu.json"
+        },
+        {
+          "scheme_name": "Chief Minister Ladli Behna Yojana",
+          "section": "benefits",
+          "source_file": "cmlby.json"
+        },
+        {
+          "scheme_name": "Bima Yojana - Direct Benefit to Artisan",
+          "section": "application",
+          "source_file": "bydbta.json"
+        },
+        {
+          "scheme_name": "Baristha Bunakar Sahayata Yojana",
+          "section": "eligibility",
+          "source_file": "bbsy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 54.397,
+      "error": null
+    },
+    {
+      "id": 30,
+      "category": "benefits_documents",
+      "query": "How much financial assistance does the Abhayakiranam Scheme provide monthly?",
+      "answer": "The Abhayakiranam Scheme provides ₹1,000 per month to the close relatives of destitute widows.",
+      "sources": [
+        {
+          "scheme_name": "Abhayakiranam Scheme-",
+          "section": "eligibility",
+          "source_file": "as-fadw copy.json"
+        },
+        {
+          "scheme_name": "Bhagyalaxmi Scheme",
+          "section": "description",
+          "source_file": "bys.json"
+        },
+        {
+          "scheme_name": "Aravanaippu Illam",
+          "section": "benefits",
+          "source_file": "aillam copy.json"
+        },
+        {
+          "scheme_name": "Chief Minister's State Disability Pension Scheme - Sikkim",
+          "section": "benefits",
+          "source_file": "cmdps-sikkim.json"
+        },
+        {
+          "scheme_name": "Disabled Person Pension Scheme - Punjab",
+          "section": "benefits",
+          "source_file": "dpps copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 36.764,
+      "error": null
+    },
+    {
+      "id": 31,
+      "category": "out_of_scope",
+      "query": "What's the weather today in Chennai?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.003,
+      "error": null
+    },
+    {
+      "id": 32,
+      "category": "out_of_scope",
+      "query": "Can you write me a Python script to scrape a website?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.004,
+      "error": null
+    },
+    {
+      "id": 33,
+      "category": "out_of_scope",
+      "query": "Who will win the next general election?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.003,
+      "error": null
+    },
+    {
+      "id": 34,
+      "category": "out_of_scope",
+      "query": "Tell me a joke.",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.005,
+      "error": null
+    },
+    {
+      "id": 35,
+      "category": "out_of_scope",
+      "query": "What is the capital of France?",
+      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
+      "sources": [],
+      "confidence": "low",
+      "intent": "scheme_search",
+      "response_time_s": 52.828,
+      "error": null
+    },
+    {
+      "id": 36,
+      "category": "out_of_scope",
+      "query": "Can you help me write a resignation letter?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.014,
+      "error": null
+    },
+    {
+      "id": 37,
+      "category": "out_of_scope",
+      "query": "आज शेयर बाजार कैसा चल रहा है?",
+      "answer": "मैं केवल सरकारी योजना की जानकारी, पात्रता जांच और दस्तावेज़ सत्यापन के साथ मदद कर सकता हूं। किसी और के लिए कृपया myscheme.gov.in देखें।",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.396,
+      "error": null
+    },
+    {
+      "id": 38,
+      "category": "out_of_scope",
+      "query": "இன்று கிரிக்கெட் மேட்ச் விவரம் என்ன?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.001,
+      "error": null
+    },
+    {
+      "id": 39,
+      "category": "out_of_scope",
+      "query": "How do I cook biryani?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.016,
+      "error": null
+    },
+    {
+      "id": 40,
+      "category": "out_of_scope",
+      "query": "Write a poem about love.",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.028,
+      "error": null
+    },
+    {
+      "id": 41,
+      "category": "edge_case",
+      "query": "scheme",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.006,
+      "error": null
+    },
+    {
+      "id": 42,
+      "category": "edge_case",
+      "query": "pension",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.063,
+      "error": null
+    },
+    {
+      "id": 43,
+      "category": "edge_case",
+      "query": "Airavatta Schme",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.031,
+      "error": null
+    },
+    {
+      "id": 44,
+      "category": "edge_case",
+      "query": "Atal Pention Yojna",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.029,
+      "error": null
+    },
+    {
+      "id": 45,
+      "category": "edge_case",
+      "query": "I need help",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.031,
+      "error": null
+    },
+    {
+      "id": 46,
+      "category": "edge_case",
+      "query": "money",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.019,
+      "error": null
+    },
+    {
+      "id": 47,
+      "category": "edge_case",
+      "query": "Is there a scheme for me?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.004,
+      "error": null
+    },
+    {
+      "id": 48,
+      "category": "edge_case",
+      "query": "Bina Mulya",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.006,
+      "error": null
+    },
+    {
+      "id": 49,
+      "category": "edge_case",
+      "query": "योजना",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.004,
+      "error": null
+    },
+    {
+      "id": 50,
+      "category": "edge_case",
+      "query": "eligibility",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.031,
+      "error": null
+    }
+  ],
+  "spot_checks": [
+    {
+      "id": 1,
+      "query": "Tell me about the Atal Pension Yojana",
+      "expected_scheme": "Atal Pension Yojana",
+      "top5_scheme_names": [
+        "Atal Asra Yojana",
+        "Atal Pension Yojana",
+        "Antya Sanskar Sahay Yojana",
+        "Beti Hai Anmol Yojana",
+        "Atma Nirbhar Krishi Yojana"
+      ],
+      "found_in_top5": true
+    },
+    {
+      "id": 2,
+      "query": "What is the Aam Aadmi Bima Yojana?",
+      "expected_scheme": "Aam Aadmi Bima Yojana",
+      "top5_scheme_names": [
+        "Aam Aadmi Bima Yojana",
+        "Bima Yojana - Direct Benefit to Artisan",
+        "Atma Nirbhar Bagwani Yojana",
+        "Chief Minister's Jeevan Jyoti Swaniyojan Yojana",
+        "Coir Udyami Yojana"
+      ],
+      "found_in_top5": true
+    },
+    {
+      "id": 3,
+      "query": "Assam Arogya Nidhi Scheme ke baare mein bataiye",
+      "expected_scheme": "Assam Arogya Nidhi Scheme",
+      "top5_scheme_names": [
+        "Assam Arogya Nidhi Scheme",
+        "Atal Amrit Abhiyan Scheme",
+        "Assam Orunodoi Scheme",
+        "Arundhati Gold Scheme",
+        "Deen Dayal Divyangjan Pension Scheme - Assam"
+      ],
+      "found_in_top5": true
+    },
+    {
+      "id": 4,
+      "query": "बीना मूल्य सामाजिक सुरक्षा योजना क्या है?",
+      "expected_scheme": "Bina Mulya Samajik Suraksha Yojana",
+      "top5_scheme_names": [
+        "Bina Mulya Samajik Suraksha Yojana",
+        "AASRA Scheme",
+        "Asangathita Shramik Sahayika Prakalpa",
+        "Chief Minister Ladli Behna Yojana",
+        "Bhima Bhoi Bhinnakshyama Samarthya Abhiyan"
+      ],
+      "found_in_top5": true
+    },
+    {
+      "id": 5,
+      "query": "ஐராவதா திட்டம் பற்றி சொல்லுங்கள்",
+      "expected_scheme": "Airavata Scheme",
+      "top5_scheme_names": [
+        "Cancer Suraksha Scheme",
+        "Border Areas Development Department",
+        "Atma Nirbhar Krishi Yojana",
+        "Allowance To Dwarf",
+        "Aamar Dukan On Wheels"
+      ],
+      "found_in_top5": false
+    },
+    {
+      "id": 6,
+      "query": "அம்மா இரு சக்கர வண்டி திட்டம் பற்றி விவரம் தேவை",
+      "expected_scheme": "Amma Two Wheeler Scheme for Working Women",
+      "top5_scheme_names": [
+        "Cancer Suraksha Scheme",
+        "Border Areas Development Department",
+        "Aamar Dukan On Wheels",
+        "Coconut Palm Insurance Scheme",
+        "Abhinandan Education Loan Subsidy Scheme"
+      ],
+      "found_in_top5": false
+    },
+    {
+      "id": 7,
+      "query": "Explain the Airavata Scheme for taxi drivers in Karnataka",
+      "expected_scheme": "Airavata Scheme",
+      "top5_scheme_names": [
+        "Airavata Scheme",
+        "Direct Loans For Business Enterprise"
+      ],
+      "found_in_top5": true
+    },
+    {
+      "id": 8,
+      "query": "What benefits does the Accidental Death Assistance for Construction Workers scheme provide in Delhi?",
+      "expected_scheme": "Accidental Death Assistance for the Construction Workers",
+      "top5_scheme_names": [
+        "Accidental Death Assistance for the Construction Workers",
+        "Education Assistance for the Construction Workers",
+        "Disability Pension for the Construction Workers",
+        "Delhi Ladli Scheme",
+        "Ex-gratia Payment for the Construction Workers"
+      ],
+      "found_in_top5": true
+    },
+    {
+      "id": 9,
+      "query": "प्रधानमंत्री किसान योजना की जानकारी दो",
+      "expected_scheme": "not in dataset - tests graceful no-match handling",
+      "top5_scheme_names": [
+        "Coconut Palm Insurance Scheme",
+        "National Agriculture Market",
+        "Chief Minister’s Agriculture Mechanisation Programme",
+        "Agriculture Information Unit Scheme",
+        "Cancer Suraksha Scheme"
+      ],
+      "found_in_top5": false
+    },
+    {
+      "id": 10,
+      "query": "Which scheme helps destitute widows in Kerala?",
+      "expected_scheme": "Abhayakiranam Scheme / Destitute Widow Pension Scheme",
+      "top5_scheme_names": [
+        "Abhayakiranam Scheme-",
+        "Educational Assistance For Children Of Victims Of Crime",
+        "Educational Assistance to Children of Women Headed Families",
+        "-to-Lab Research Fellowship Programme",
+        "Distress Relief Fund For The Differently Abled (Medical Treatment)"
+      ],
+      "found_in_top5": true
+    }
+  ]
+}

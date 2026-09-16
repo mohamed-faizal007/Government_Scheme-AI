@@ -1,0 +1,347 @@
+{
+  "accuracy_pct": 95.0,
+  "unverifiable_pct": 100.0,
+  "total": 20,
+  "correct": 19,
+  "rows": [
+    {
+      "description": "Assam resident, income 3L -> eligible for Assam Arogya Nidhi",
+      "scheme_file": "aan copy.json",
+      "scheme_name": "Assam Arogya Nidhi Scheme",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "There will be no age limit for coverage under the scheme.",
+        "No Govt. employee or Govt. pensioners and their family members will be eligible under the scheme.",
+        "Treatment should be undertaken in any govt. hospital including Govt. Medical Colleges and all reputed Pvt. Hospitals registered under Clinical Establishment Act. anywhere in the state or in the country."
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "Bihar resident (not Assam) -> NOT eligible for Assam Arogya Nidhi",
+      "scheme_file": "aan copy.json",
+      "scheme_name": "Assam Arogya Nidhi Scheme",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "There will be no age limit for coverage under the scheme.",
+        "No Govt. employee or Govt. pensioners and their family members will be eligible under the scheme.",
+        "Treatment should be undertaken in any govt. hospital including Govt. Medical Colleges and all reputed Pvt. Hospitals registered under Clinical Establishment Act. anywhere in the state or in the country."
+      ],
+      "failed_conditions": [
+        "All Indian citizens who are ordinarily resident of the State of Assam will be eligible under the scheme."
+      ]
+    },
+    {
+      "description": "Age 30 within 18-60 -> eligible for Agri-Clinics scheme",
+      "scheme_file": "acandabc copy.json",
+      "scheme_name": "Agri-Clinics And Agri-Business Centres Scheme",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant must qualify as one of the following -Graduates in agriculture and allied subjects from SAUs/ Central Agricultural Universities/ Universities recognized by ICAR/ UGC. Degree in Agriculture and allied subjects offered by other agencies are also considered subject to the approval of the Department of Agriculture & Cooperation, on the recommendation of the State Government.",
+        "Diploma (with at least 50% marks)/ Post Graduate Diploma holders in Agriculture and allied subjects from State Agricultural Universities, State Agriculture and Allied Departments, and State Department of Technical Education.",
+        "Diplomas in Agriculture and allied subjects offered by other agencies are also considered subject to the approval of the Department of Agriculture & Cooperation, on the recommendation of the State Government.",
+        "Biological Science Graduates with Post Graduation in Agriculture & allied subjects.",
+        "Degree courses recognized by UGC have more than 60 percent of the course content in Agriculture and allied subjects.",
+        "Diploma/Post-graduate Diploma courses with more than 60 percent of course content in Agriculture and allied subjects, after B.",
+        "Sc. with Biological Sciences, from recognized colleges and universities.",
+        "Agriculture-related courses at intermediate (i.e. plus two) level, with at least 55% marks.",
+        "?",
+        "Yes, retired employees getting pensionary",
+        "Retired Employees Getting Pensionary"
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "Age 65 exceeds 18-60 window -> NOT eligible for Agri-Clinics scheme",
+      "scheme_file": "acandabc copy.json",
+      "scheme_name": "Agri-Clinics And Agri-Business Centres Scheme",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant must qualify as one of the following -Graduates in agriculture and allied subjects from SAUs/ Central Agricultural Universities/ Universities recognized by ICAR/ UGC. Degree in Agriculture and allied subjects offered by other agencies are also considered subject to the approval of the Department of Agriculture & Cooperation, on the recommendation of the State Government.",
+        "Diploma (with at least 50% marks)/ Post Graduate Diploma holders in Agriculture and allied subjects from State Agricultural Universities, State Agriculture and Allied Departments, and State Department of Technical Education.",
+        "Diplomas in Agriculture and allied subjects offered by other agencies are also considered subject to the approval of the Department of Agriculture & Cooperation, on the recommendation of the State Government.",
+        "Biological Science Graduates with Post Graduation in Agriculture & allied subjects.",
+        "Degree courses recognized by UGC have more than 60 percent of the course content in Agriculture and allied subjects.",
+        "Diploma/Post-graduate Diploma courses with more than 60 percent of course content in Agriculture and allied subjects, after B.",
+        "Sc. with Biological Sciences, from recognized colleges and universities.",
+        "Agriculture-related courses at intermediate (i.e. plus two) level, with at least 55% marks.",
+        "?",
+        "Yes, retired employees getting pensionary",
+        "Retired Employees Getting Pensionary"
+      ],
+      "failed_conditions": [
+        "The age of the applicant must be between 18 and 60 years."
+      ]
+    },
+    {
+      "description": "Delhi resident, age 35 -> eligible for Accidental Death Assistance (Delhi)",
+      "scheme_file": "adacw copy.json",
+      "scheme_name": "Accidental Death Assistance for the Construction Workers",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should be a Building/Construction Worker.",
+        "The applicant should have served the Board for at least 90 days in a given year.For Application",
+        "The nominees/dependents who have lost any registered member/worker of the due to an accidental death."
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "Delhi resident, age 15 (below 18) -> NOT eligible for Accidental Death Assistance",
+      "scheme_file": "adacw copy.json",
+      "scheme_name": "Accidental Death Assistance for the Construction Workers",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should be a Building/Construction Worker.",
+        "The applicant should have served the Board for at least 90 days in a given year.For Application",
+        "The nominees/dependents who have lost any registered member/worker of the due to an accidental death."
+      ],
+      "failed_conditions": [
+        "The applicant should be between 18 and 60 years."
+      ]
+    },
+    {
+      "description": "Puducherry resident, age 25 within 18-35 -> eligible for Advance High Skill Training",
+      "scheme_file": "ahst copy.json",
+      "scheme_name": "\"Advance / High Skill Training\" Component of the \"Development of Industries\" Scheme",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should possess the educational qualification as prescribed by the Training Units/ Institutions.",
+        "for applicants?",
+        "Applicants need to possess the educational qualifications as prescribed by the Training Units/Institutions. What residency criteria should applicants meet?"
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "Puducherry resident, age 50 (above 35) -> NOT eligible for Advance High Skill Training",
+      "scheme_file": "ahst copy.json",
+      "scheme_name": "\"Advance / High Skill Training\" Component of the \"Development of Industries\" Scheme",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should possess the educational qualification as prescribed by the Training Units/ Institutions.",
+        "for applicants?",
+        "Applicants need to possess the educational qualifications as prescribed by the Training Units/Institutions. What residency criteria should applicants meet?"
+      ],
+      "failed_conditions": [
+        "The applicant should be between 18 and 35 years of age.",
+        "Applicants should be between 18 and 35 years of age to be eligible for the scheme. What educational qualifications are required for applicants?"
+      ]
+    },
+    {
+      "description": "SC category, Karnataka, age 25 -> eligible for Airavata Scheme",
+      "scheme_file": "airavata copy.json",
+      "scheme_name": "Airavata Scheme",
+      "expected_eligible": true,
+      "actual_eligible": false,
+      "match": false,
+      "unverifiable_conditions": [
+        "1. The applicant is expected to drive on Ola or Uber platforms in cities where they operate. In rest of the districts the vehicles will be distributed as tourist taxis.2.",
+        "The beneficiary is expected to undergo a training by Ola or Uber before being on boarded"
+      ],
+      "failed_conditions": [
+        "1. The applicant should belong to the Scheduled caste community2. The applicant should be a resident of Karnataka3. The applicant should be above 21 years of age4. The applicant must hold a valid driving license and a cab badge5. The applicant’s family annual income should not exceed Rs. 5,00,000/-6. Applicant will be considered ineligible if they/their family member has earlier availed a subsidy from the Corporation/Government of Karnataka exceeding Rs.1,00,000.7. The selection of applicants will be based on merit and merit will be decided upon parameters such as Age, Education qualification, cab badge and years of driving experience"
+      ]
+    },
+    {
+      "description": "OBC category (not SC), Karnataka, age 25 -> NOT eligible for Airavata Scheme",
+      "scheme_file": "airavata copy.json",
+      "scheme_name": "Airavata Scheme",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "1. The applicant is expected to drive on Ola or Uber platforms in cities where they operate. In rest of the districts the vehicles will be distributed as tourist taxis.2.",
+        "The beneficiary is expected to undergo a training by Ola or Uber before being on boarded"
+      ],
+      "failed_conditions": [
+        "1. The applicant should belong to the Scheduled caste community2. The applicant should be a resident of Karnataka3. The applicant should be above 21 years of age4. The applicant must hold a valid driving license and a cab badge5. The applicant’s family annual income should not exceed Rs. 5,00,000/-6. Applicant will be considered ineligible if they/their family member has earlier availed a subsidy from the Corporation/Government of Karnataka exceeding Rs.1,00,000.7. The selection of applicants will be based on merit and merit will be decided upon parameters such as Age, Education qualification, cab badge and years of driving experience"
+      ]
+    },
+    {
+      "description": "Woman, Tamil Nadu, income 2L -> eligible for Amma Two Wheeler Scheme",
+      "scheme_file": "atwsfww copy.json",
+      "scheme_name": "Amma Two Wheeler Scheme for Working Women",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "",
+        "The applicant should be in the age group of 18 to 40 years.",
+        "The applicant should know how to drive and possess a valid Two Wheeler / Learner License Registration (LLR) at the time of applying.",
+        "The applicant should have appeared for the class 8th examination (Passed/Failed).",
+        "Priority will be given to working women residing in remote places, hilly regions, women-headed households, deserted women, destitute widows, differently abled women, Unmarried women aged above 35 years, Scheduled Caste/Tribes, and Transgender.Note Saving clause: if the applicant has applied with a Learner License Registration(LLR) she should get a valid Two Wheeler Driving License before submitting the subsidy claim form. She should also attach a copy of the two Wheeler Driving License to the subsidy claim form, at the time of applying. Further, she should produce the original Driving License for official verification, as and when needed.",
+        "requirements of the scheme. If you are eligible for the scheme, furnish all the required documents, fill out and submit the application at designated places. You can also complete the Amma two-wheeler scheme online registration. Once the physical verification of the two-wheeler is complete, the authorities will release the 50% subsidy in your bank account",
+        "Is there any Educational Qualification?",
+        "Yes the applicant Should have appeared for the class 8th examination (Passed/Failed).",
+        "Is there any reservation",
+        "under the Amma two-wheeler scheme ?",
+        "Yes, 21% of the scheme's allocation is reserved for women belonging to Scheduled Castes. 1% of the scheme’s allocation is reserved for women belonging to Scheduled Tribes. 4% of the scheme’s allocation is reserved for differently abled women (across all categories). Can man apply for this Amma two-wheeler scheme ?",
+        "Women who are engaged individually or collectively as a group for a livelihood activity/wage employment and are commuting for a long distance and their earnings being the primary source of income for the family are the intended beneficiaries. This will also include (among others) the following categories.i. Women registered as workers in the Organized and Unorganized sectors.ii. Women employed in Shops and Establishments.iii. Self-employed women involved in petty trades or otherwise.iv. Women working in Government Aided Organisations / Private Institutions /Government Projects / Community-Based Organizations – Panchayats Level Federations(PLF) Village Poverty Reduction Committees (VPRCs), Mavatta Makkal Kattral Maiyam (Makamai), who are either on consolidated salary or daily wages or on contract employment.v. Banking correspondents/Banking Facilitators and ASHA workers."
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "Male applicant -> NOT eligible for Amma Two Wheeler Scheme (women only)",
+      "scheme_file": "atwsfww copy.json",
+      "scheme_name": "Amma Two Wheeler Scheme for Working Women",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "",
+        "The applicant should be in the age group of 18 to 40 years.",
+        "The applicant should know how to drive and possess a valid Two Wheeler / Learner License Registration (LLR) at the time of applying.",
+        "The applicant should have appeared for the class 8th examination (Passed/Failed).",
+        "Priority will be given to working women residing in remote places, hilly regions, women-headed households, deserted women, destitute widows, differently abled women, Unmarried women aged above 35 years, Scheduled Caste/Tribes, and Transgender.Note Saving clause: if the applicant has applied with a Learner License Registration(LLR) she should get a valid Two Wheeler Driving License before submitting the subsidy claim form. She should also attach a copy of the two Wheeler Driving License to the subsidy claim form, at the time of applying. Further, she should produce the original Driving License for official verification, as and when needed.",
+        "requirements of the scheme. If you are eligible for the scheme, furnish all the required documents, fill out and submit the application at designated places. You can also complete the Amma two-wheeler scheme online registration. Once the physical verification of the two-wheeler is complete, the authorities will release the 50% subsidy in your bank account",
+        "Is there any Educational Qualification?",
+        "Yes the applicant Should have appeared for the class 8th examination (Passed/Failed).",
+        "Is there any reservation",
+        "under the Amma two-wheeler scheme ?",
+        "Yes, 21% of the scheme's allocation is reserved for women belonging to Scheduled Castes. 1% of the scheme’s allocation is reserved for women belonging to Scheduled Tribes. 4% of the scheme’s allocation is reserved for differently abled women (across all categories). Can man apply for this Amma two-wheeler scheme ?"
+      ],
+      "failed_conditions": [
+        "Only woman and only one woman will be eligible to avail of the benefit in a family.",
+        "No, this Scheme only for Women."
+      ]
+    },
+    {
+      "description": "Kerala resident, age 60, income 50k -> eligible for Abhayakiranam Scheme",
+      "scheme_file": "as-fadw copy.json",
+      "scheme_name": "Abhayakiranam Scheme-",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should not be receiving a service pension or family pension.",
+        "The applicant should not be a beneficiary of schemes implemented through the Social Justice Department (Aswasakiranam, Samashwasam)."
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "Kerala resident, age 40 (below 50 age-limit) -> NOT eligible for Abhayakiranam Scheme",
+      "scheme_file": "as-fadw copy.json",
+      "scheme_name": "Abhayakiranam Scheme-",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should not be receiving a service pension or family pension.",
+        "The applicant should not be a beneficiary of schemes implemented through the Social Justice Department (Aswasakiranam, Samashwasam)."
+      ],
+      "failed_conditions": [
+        "The age limit of the applicant (destitute widow) must be above 50 years."
+      ]
+    },
+    {
+      "description": "Puducherry, age 30, disabled -> eligible for Annual Tour to Differently Abled Persons",
+      "scheme_file": "atdap copy.json",
+      "scheme_name": "Annual Tour to the Differently Abled Persons",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should not have performed the tour for the past ten years.",
+        "The applicant should not be affected by any contagious diseases. The applicants may apply to this scheme only after the issue of notification in the local newspapers.",
+        "The applicant should not be a Government Servant.",
+        "The parents of the applicant should not be a Government servant.",
+        "The applicant should have registered his/her name in the Anganwadi Centre.",
+        "?",
+        "Applicants must have a disability of 40% or above to be eligible for the scheme. What is the maximum annual income allowed for",
+        "Yes, the consumption of drugs and alcoholic items is strictly prohibited during the tour."
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "Puducherry, age 30, NOT disabled -> NOT eligible for Annual Tour to Differently Abled Persons",
+      "scheme_file": "atdap copy.json",
+      "scheme_name": "Annual Tour to the Differently Abled Persons",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should not have performed the tour for the past ten years.",
+        "The applicant should not be affected by any contagious diseases. The applicants may apply to this scheme only after the issue of notification in the local newspapers.",
+        "The applicant should not be a Government Servant.",
+        "The parents of the applicant should not be a Government servant.",
+        "The applicant should have registered his/her name in the Anganwadi Centre.",
+        "?",
+        "Yes, the consumption of drugs and alcoholic items is strictly prohibited during the tour."
+      ],
+      "failed_conditions": [
+        "The applicant should have a disability of 40% or above.",
+        "Applicants must have a disability of 40% or above to be eligible for the scheme. What is the maximum annual income allowed for"
+      ]
+    },
+    {
+      "description": "West Bengal resident, age 40 -> eligible for Bina Mulya Samajik Suraksha Yojana",
+      "scheme_file": "bmssy.json",
+      "scheme_name": "Bina Mulya Samajik Suraksha Yojana",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "Applicant family income should not exceed ₹ 6, 500/- per month except construction & transport workers. For construction & transport workers family income has no upper limit.",
+        "The period for calculation of average family income will be 12 months prior to the month in which application is made."
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "West Bengal resident, age 70 (above 60) -> NOT eligible for Bina Mulya Samajik Suraksha Yojana",
+      "scheme_file": "bmssy.json",
+      "scheme_name": "Bina Mulya Samajik Suraksha Yojana",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "Applicant family income should not exceed ₹ 6, 500/- per month except construction & transport workers. For construction & transport workers family income has no upper limit.",
+        "The period for calculation of average family income will be 12 months prior to the month in which application is made."
+      ],
+      "failed_conditions": [
+        "Applicant should be between 18-60 years of age."
+      ]
+    },
+    {
+      "description": "Low income minority applicant -> eligible for Alpasankhyak Post-Maitrik Chhaatravrtti Yojana",
+      "scheme_file": "apmcy copy.json",
+      "scheme_name": "Alpasankhyak Post-Maitrik Chhaatravrtti Yojana",
+      "expected_eligible": true,
+      "actual_eligible": true,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should be a native of the minority category of Madhya Pradesh.",
+        "Not less than 50 percent marks in the last qualifying examination."
+      ],
+      "failed_conditions": []
+    },
+    {
+      "description": "High income (10L, well above 2L cap) -> NOT eligible for Alpasankhyak Post-Maitrik Chhaatravrtti Yojana",
+      "scheme_file": "apmcy copy.json",
+      "scheme_name": "Alpasankhyak Post-Maitrik Chhaatravrtti Yojana",
+      "expected_eligible": false,
+      "actual_eligible": false,
+      "match": true,
+      "unverifiable_conditions": [
+        "The applicant should be a native of the minority category of Madhya Pradesh.",
+        "Not less than 50 percent marks in the last qualifying examination."
+      ],
+      "failed_conditions": [
+        "The total annual income of the applicant's parents and guardian should not exceed ₹2,00,000/-."
+      ]
+    }
+  ]
+}

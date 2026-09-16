@@ -1,0 +1,332 @@
+[
+  {
+    "id": 1,
+    "category": "scheme_search",
+    "language": "en",
+    "query": "Tell me about the Atal Pension Yojana",
+    "expected_scheme": "Atal Pension Yojana"
+  },
+  {
+    "id": 2,
+    "category": "scheme_search",
+    "language": "en",
+    "query": "What is the Aam Aadmi Bima Yojana?",
+    "expected_scheme": "Aam Aadmi Bima Yojana"
+  },
+  {
+    "id": 3,
+    "category": "scheme_search",
+    "language": "hi",
+    "query": "Assam Arogya Nidhi Scheme ke baare mein bataiye",
+    "expected_scheme": "Assam Arogya Nidhi Scheme"
+  },
+  {
+    "id": 4,
+    "category": "scheme_search",
+    "language": "hi",
+    "query": "बीना मूल्य सामाजिक सुरक्षा योजना क्या है?",
+    "expected_scheme": "Bina Mulya Samajik Suraksha Yojana"
+  },
+  {
+    "id": 5,
+    "category": "scheme_search",
+    "language": "ta",
+    "query": "ஐராவதா திட்டம் பற்றி சொல்லுங்கள்",
+    "expected_scheme": "Airavata Scheme"
+  },
+  {
+    "id": 6,
+    "category": "scheme_search",
+    "language": "ta",
+    "query": "அம்மா இரு சக்கர வண்டி திட்டம் பற்றி விவரம் தேவை",
+    "expected_scheme": "Amma Two Wheeler Scheme for Working Women"
+  },
+  {
+    "id": 7,
+    "category": "scheme_search",
+    "language": "en",
+    "query": "Explain the Airavata Scheme for taxi drivers in Karnataka",
+    "expected_scheme": "Airavata Scheme"
+  },
+  {
+    "id": 8,
+    "category": "scheme_search",
+    "language": "en",
+    "query": "What benefits does the Accidental Death Assistance for Construction Workers scheme provide in Delhi?",
+    "expected_scheme": "Accidental Death Assistance for the Construction Workers"
+  },
+  {
+    "id": 9,
+    "category": "scheme_search",
+    "language": "hi",
+    "query": "प्रधानमंत्री किसान योजना की जानकारी दो",
+    "expected_scheme": "not in dataset - tests graceful no-match handling"
+  },
+  {
+    "id": 10,
+    "category": "scheme_search",
+    "language": "en",
+    "query": "Which scheme helps destitute widows in Kerala?",
+    "expected_scheme": "Abhayakiranam Scheme / Destitute Widow Pension Scheme"
+  },
+  {
+    "id": 11,
+    "category": "eligibility_check",
+    "language": "en",
+    "query": "Am I eligible for Atal Pension Yojana if I am 25 years old?",
+    "notes": "Age within 18-40 joining window; engine should not hallucinate an eligibility verdict without more info"
+  },
+  {
+    "id": 12,
+    "category": "eligibility_check",
+    "language": "en",
+    "query": "I am a 70-year-old widow from Kerala with no income, can I get pension under the Abhayakiranam Scheme?",
+    "notes": "Matches age>50, state Kerala, low income -> expected eligible"
+  },
+  {
+    "id": 13,
+    "category": "eligibility_check",
+    "language": "en",
+    "query": "My annual income is 3 lakhs and I live in Assam, am I eligible for the Assam Arogya Nidhi Scheme?",
+    "notes": "income < 5 lakh, state Assam -> expected eligible"
+  },
+  {
+    "id": 14,
+    "category": "eligibility_check",
+    "language": "en",
+    "query": "I am a 40-year-old SC category driver in Bangalore, am I eligible for the Airavata Scheme?",
+    "notes": "SC category, Karnataka, above 21 -> expected eligible"
+  },
+  {
+    "id": 15,
+    "category": "eligibility_check",
+    "language": "hi",
+    "query": "मैं दिल्ली में 20 साल का निर्माण मजदूर हूं, क्या मुझे Accidental Death Assistance मिल सकती है?",
+    "notes": "Delhi, age 20 (18-60), construction worker -> expected eligible for the underlying benefit criteria"
+  },
+  {
+    "id": 16,
+    "category": "eligibility_check",
+    "language": "en",
+    "query": "Is a 65-year-old eligible for the Agri-Clinics and Agri-Business Centres Scheme?",
+    "notes": "Age 65 exceeds 18-60 window -> expected NOT eligible"
+  },
+  {
+    "id": 17,
+    "category": "eligibility_check",
+    "language": "en",
+    "query": "I am a woman in Tamil Nadu earning 2 lakhs a year, can I apply for the Amma Two Wheeler Scheme?",
+    "notes": "Woman, Tamil Nadu, income < 2.5 lakh -> expected eligible"
+  },
+  {
+    "id": 18,
+    "category": "eligibility_check",
+    "language": "ta",
+    "query": "என் வயது 60, நான் ஒரு விதவை, கேரளாவில் வசிக்கிறேன், எனக்கு உதவி கிடைக்குமா?",
+    "notes": "Age 60, widow, Kerala -> plausible Abhayakiranam match"
+  },
+  {
+    "id": 19,
+    "category": "eligibility_check",
+    "language": "en",
+    "query": "I'm 22 and live in Puducherry, am I eligible for the Advance High Skill Training scheme?",
+    "notes": "Age 22 within 18-35, Puducherry resident -> expected eligible"
+  },
+  {
+    "id": 20,
+    "category": "eligibility_check",
+    "language": "en",
+    "query": "My family income is Rs 6 lakh a year, are we eligible for any BPL scholarship scheme?",
+    "notes": "Income too high for most BPL-linked schemes -> expected NOT eligible / declined"
+  },
+  {
+    "id": 21,
+    "category": "benefits_documents",
+    "language": "en",
+    "query": "What documents are required to apply for Atal Pension Yojana?"
+  },
+  {
+    "id": 22,
+    "category": "benefits_documents",
+    "language": "en",
+    "query": "What is the benefit amount under the Assam Arogya Nidhi Scheme?"
+  },
+  {
+    "id": 23,
+    "category": "benefits_documents",
+    "language": "en",
+    "query": "How much subsidy do I get under the Airavata Scheme?"
+  },
+  {
+    "id": 24,
+    "category": "benefits_documents",
+    "language": "en",
+    "query": "What documents do I need for the Amma Two Wheeler Scheme?"
+  },
+  {
+    "id": 25,
+    "category": "benefits_documents",
+    "language": "hi",
+    "query": "असम अरोग्य निधि योजना के तहत क्या लाभ मिलता है?"
+  },
+  {
+    "id": 26,
+    "category": "benefits_documents",
+    "language": "ta",
+    "query": "ஐராவதா திட்டத்தில் என்ன ஆவணங்கள் தேவை?"
+  },
+  {
+    "id": 27,
+    "category": "benefits_documents",
+    "language": "en",
+    "query": "What is the process to apply for Accidental Death Assistance for Construction Workers?"
+  },
+  {
+    "id": 28,
+    "category": "benefits_documents",
+    "language": "en",
+    "query": "How do I claim benefits under the Aam Aadmi Bima Yojana?"
+  },
+  {
+    "id": 29,
+    "category": "benefits_documents",
+    "language": "en",
+    "query": "What identity proof documents are accepted for the Bina Mulya Samajik Suraksha Yojana?"
+  },
+  {
+    "id": 30,
+    "category": "benefits_documents",
+    "language": "en",
+    "query": "How much financial assistance does the Abhayakiranam Scheme provide monthly?"
+  },
+  {
+    "id": 31,
+    "category": "out_of_scope",
+    "language": "en",
+    "query": "What's the weather today in Chennai?"
+  },
+  {
+    "id": 32,
+    "category": "out_of_scope",
+    "language": "en",
+    "query": "Can you write me a Python script to scrape a website?"
+  },
+  {
+    "id": 33,
+    "category": "out_of_scope",
+    "language": "en",
+    "query": "Who will win the next general election?"
+  },
+  {
+    "id": 34,
+    "category": "out_of_scope",
+    "language": "en",
+    "query": "Tell me a joke."
+  },
+  {
+    "id": 35,
+    "category": "out_of_scope",
+    "language": "en",
+    "query": "What is the capital of France?"
+  },
+  {
+    "id": 36,
+    "category": "out_of_scope",
+    "language": "en",
+    "query": "Can you help me write a resignation letter?"
+  },
+  {
+    "id": 37,
+    "category": "out_of_scope",
+    "language": "hi",
+    "query": "आज शेयर बाजार कैसा चल रहा है?"
+  },
+  {
+    "id": 38,
+    "category": "out_of_scope",
+    "language": "ta",
+    "query": "இன்று கிரிக்கெட் மேட்ச் விவரம் என்ன?"
+  },
+  {
+    "id": 39,
+    "category": "out_of_scope",
+    "language": "en",
+    "query": "How do I cook biryani?"
+  },
+  {
+    "id": 40,
+    "category": "out_of_scope",
+    "language": "en",
+    "query": "Write a poem about love."
+  },
+  {
+    "id": 41,
+    "category": "edge_case",
+    "language": "en",
+    "query": "scheme",
+    "notes": "very short / ambiguous single word"
+  },
+  {
+    "id": 42,
+    "category": "edge_case",
+    "language": "en",
+    "query": "pension",
+    "notes": "very short / ambiguous single word"
+  },
+  {
+    "id": 43,
+    "category": "edge_case",
+    "language": "en",
+    "query": "Airavatta Schme",
+    "notes": "misspelling of Airavata Scheme"
+  },
+  {
+    "id": 44,
+    "category": "edge_case",
+    "language": "en",
+    "query": "Atal Pention Yojna",
+    "notes": "misspelling of Atal Pension Yojana"
+  },
+  {
+    "id": 45,
+    "category": "edge_case",
+    "language": "en",
+    "query": "I need help",
+    "notes": "ambiguous, no scheme or intent info"
+  },
+  {
+    "id": 46,
+    "category": "edge_case",
+    "language": "en",
+    "query": "money",
+    "notes": "very short / ambiguous single word"
+  },
+  {
+    "id": 47,
+    "category": "edge_case",
+    "language": "en",
+    "query": "Is there a scheme for me?",
+    "notes": "no profile info provided at all"
+  },
+  {
+    "id": 48,
+    "category": "edge_case",
+    "language": "en",
+    "query": "Bina Mulya",
+    "notes": "partial scheme name only"
+  },
+  {
+    "id": 49,
+    "category": "edge_case",
+    "language": "hi",
+    "query": "योजना",
+    "notes": "single Hindi word meaning 'scheme'"
+  },
+  {
+    "id": 50,
+    "category": "edge_case",
+    "language": "en",
+    "query": "eligibility",
+    "notes": "single word, no context"
+  }
+]

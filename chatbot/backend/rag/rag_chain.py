@@ -6,7 +6,7 @@ from ..translation.translator import translate
 from .generator import DECLINE_MESSAGE, generate
 
 
-def answer(query: str, language: str = "en") -> dict:
+def answer(query: str, language: str = "en", system_prompt_suffix: str = "") -> dict:
     retrieved_schemes = retrieve(query, top_k=5)
 
     if not retrieved_schemes:
@@ -17,7 +17,7 @@ def answer(query: str, language: str = "en") -> dict:
             "language": language,
         }
 
-    result = generate(query, retrieved_schemes, language=language)
+    result = generate(query, retrieved_schemes, language=language, system_prompt_suffix=system_prompt_suffix)
     result["answer"] = translate(result["answer"], source_lang="en", target_lang=language)
     return result
 

@@ -91,7 +91,12 @@ def _build_prompt(query: str, retrieved_schemes: list[dict]) -> str:
 User question: {query}"""
 
 
-def generate(query: str, retrieved_schemes: list[dict], language: str = "en") -> dict:
+def generate(
+    query: str,
+    retrieved_schemes: list[dict],
+    language: str = "en",
+    system_prompt_suffix: str = "",
+) -> dict:
     if not retrieved_schemes:
         return {
             "answer": DECLINE_MESSAGE,
@@ -100,11 +105,13 @@ def generate(query: str, retrieved_schemes: list[dict], language: str = "en") ->
             "language": language,
         }
 
+    system_prompt = SYSTEM_PROMPT + (f"\n\n{system_prompt_suffix}" if system_prompt_suffix else "")
+
     try:
         llm = get_llm()
         try:
             raw = llm.generate(
-                _build_prompt(query, retrieved_schemes), system=SYSTEM_PROMPT
+                _build_prompt(query, retrieved_schemes), system=system_prompt
             )
         except ContextTooLargeError:
             logger.warning(
@@ -114,7 +121,7 @@ def generate(query: str, retrieved_schemes: list[dict], language: str = "en") ->
             )
             retrieved_schemes = retrieved_schemes[:TRUNCATED_TOP_K]
             raw = llm.generate(
-                _build_prompt(query, retrieved_schemes), system=SYSTEM_PROMPT
+                _build_prompt(query, retrieved_schemes), system=system_prompt
             )
     except Exception:
         logger.exception("generator: LLM generation failed after all fallbacks")

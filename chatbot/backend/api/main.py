@@ -60,6 +60,11 @@ OUT_OF_SCOPE_MESSAGE = (
     "myscheme.gov.in."
 )
 
+COMPARISON_PROMPT_ADDITION = (
+    "The user wants to compare multiple schemes. List each scheme separately "
+    "with its key benefits and eligibility, then summarize the key differences."
+)
+
 DOCUMENT_UPLOAD_PROMPT = (
     "Please upload your document (PDF) using the file upload option so I can "
     "verify it and help fill in your profile."
@@ -73,6 +78,8 @@ def _new_session() -> dict:
         "profile": UserProfile(),
         "history": [],
         "last_active": datetime.now(timezone.utc),
+        "last_intent": None,
+        "last_bot_message_was_question": False,
     }
 
 
@@ -144,7 +151,12 @@ ENTITY_TO_PROFILE_FIELD = {
     "state": "state",
     "income": "income_annual",
     "category": "category",
+    "gender": "gender",
 }
+
+
+def _is_non_latin_script(text: str) -> bool:
+    return any(ord(ch) > 0x2FF for ch in text)
 
 
 def _apply_entities(profile: UserProfile, entities: dict) -> None:
@@ -253,13 +265,36 @@ def _process_message(message: str, session_id: Optional[str], language_override:
     # embeds Tamil/Hindi/English natively, so translating for retrieval would
     # only lose signal.
     classification_query = message if language == "en" else translate(message, source_lang=language, target_lang="en")
-    classification = classify(classification_query)
-    intent = classification["intent"]
-    _apply_entities(profile, classification["extracted_entities"])
+
+    # translate() returns the original text unchanged when no model is
+    # installed for this language pair (e.g. Tamil has none). A non-Latin
+    # query that comes back untranslated would otherwise hit the
+    # English-only classifier verbatim and fail — default it to
+    # scheme_search instead, which is the overwhelmingly common intent for
+    # untranslatable non-English queries on this platform.
+    translation_failed = language != "en" and classification_query == message and _is_non_latin_script(message)
+    if translation_failed:
+        intent = "scheme_search"
+        entities = {}
+    else:
+        classification = classify(classification_query)
+        intent = classification["intent"]
+        entities = classification["extracted_entities"]
+
+    # A plain slot-filling answer ("I am 30 years old") has no intent
+    # trigger phrases and would otherwise fall to out_of_scope. If the bot's
+    # previous message was an eligibility slot-filling question, treat this
+    # message as a continuation of that flow regardless of what the
+    # classifier says.
+    if session.get("last_intent") == "eligibility_check" and session.get("last_bot_message_was_question"):
+        intent = "eligibility_check"
+
+    _apply_entities(profile, entities)
 
     eligibility_results = []
     if intent == "scheme_search" or intent == "comparison":
-        result = rag_answer(message, language=language)
+        suffix = COMPARISON_PROMPT_ADDITION if intent == "comparison" else ""
+        result = rag_answer(message, language=language, system_prompt_suffix=suffix)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
     elif intent == "eligibility_check":
         result = _handle_eligibility(profile, message, language)
@@ -274,6 +309,8 @@ def _process_message(message: str, session_id: Optional[str], language_override:
 
     session["history"].append({"role": "user", "message": message})
     session["history"].append({"role": "assistant", "message": answer_text})
+    session["last_intent"] = intent
+    session["last_bot_message_was_question"] = answer_text.rstrip().endswith("?")
 
     return {
         "answer": answer_text,

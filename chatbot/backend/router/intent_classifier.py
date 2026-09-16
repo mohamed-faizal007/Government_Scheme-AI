@@ -33,6 +33,12 @@ CATEGORY_PATTERNS = {
     "general": r"\bgeneral category\b",
 }
 
+GENDER_PATTERNS = {
+    "female": r"\bfemale\b|\bwoman\b|\bi\s*am\s*a?\s*girl\b",
+    "male": r"\bmale\b|\bman\b|\bi\s*am\s*a?\s*boy\b",
+    "other": r"\bnon[- ]binary\b|\bother gender\b|\btransgender\b",
+}
+
 AGE_PATTERNS = [
     r"\bi\s*am\s*(\d{1,3})\s*years?\s*old\b",
     r"\bage\s*(?:is|:)?\s*(\d{1,3})\b",
@@ -67,6 +73,11 @@ def extract_entities(query: str) -> dict:
     for category, pattern in CATEGORY_PATTERNS.items():
         if re.search(pattern, query, re.IGNORECASE):
             entities["category"] = category
+            break
+
+    for gender, pattern in GENDER_PATTERNS.items():
+        if re.search(pattern, query, re.IGNORECASE):
+            entities["gender"] = gender
             break
 
     for pattern in AGE_PATTERNS:

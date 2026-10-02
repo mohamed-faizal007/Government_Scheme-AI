@@ -1,19 +1,22 @@
 """FastAPI backend — chat, profile, health, and WebSocket endpoints.
 Run: uvicorn chatbot.backend.api.main:app --reload --port 8000  (from repo root)
 """
+import hmac
 import logging
 import tempfile
 import uuid
+from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Literal, Optional
 
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketState
 
+from ..config import settings
 from ..database.load_chroma import COLLECTION_NAME as CHROMA_COLLECTION_NAME
-from ..database.mongo_client import get_schemes_collection
+from ..database.mongo_client import get_db, get_schemes_collection
 from ..documents.extractor import autofill_profile, extract_fields
 from ..documents.ocr import extract_text
 from ..eligibility.rules_engine import _is_junk, check_eligibility
@@ -22,11 +25,23 @@ from ..eligibility.user_profile import UserProfile
 from ..rag.rag_chain import answer as rag_answer
 from ..retrieval.retriever import retrieve
 from ..router.intent_classifier import classify
+from ..sync import scheduler as sync_scheduler
+from ..sync import sync_status
 from ..translation.translator import detect_language, translate
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="Government Scheme AI Chatbot")
+
+@asynccontextmanager
+async def lifespan(_app: FastAPI):
+    # The scheduler runs on its own daemon thread; failing to start it must not stop the API.
+    if settings.sync_scheduler_enabled:
+        sync_scheduler.start_scheduler()
+    yield
+    sync_scheduler.stop_scheduler()
+
+
+app = FastAPI(title="Government Scheme AI Chatbot", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -125,6 +140,14 @@ class ChatResponse(BaseModel):
     session_id: str
     profile: dict = Field(default_factory=dict)
     eligibility_results: list = Field(default_factory=list)
+
+
+class FeedbackRequest(BaseModel):
+    session_id: str
+    message_index: int = Field(ge=0)
+    rating: Literal["positive", "negative"]
+    query: str = ""
+    intent: str = ""
 
 
 class ProfileRequest(BaseModel):
@@ -241,6 +264,35 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
     }
 
 
+def _format_data_as_of(value) -> str:
+    return f"Data as of {value.strftime('%d %b %Y')}"
+
+
+def _add_sync_dates(sources: list) -> None:
+    """Attach last_synced / data_as_of to each cited source that has a sync date in MongoDB."""
+    files = list({s["source_file"] for s in sources if s.get("source_file")})
+    if not files:
+        return
+    try:
+        synced = {
+            doc["source_file"]: doc["last_synced"]
+            for doc in get_schemes_collection().find(
+                {"source_file": {"$in": files}, "last_synced": {"$exists": True}},
+                {"source_file": 1, "last_synced": 1},
+            )
+            if isinstance(doc.get("last_synced"), datetime)
+        }
+    except Exception:
+        logger.exception("failed to look up last_synced for sources")
+        return
+    for source in sources:
+        last_synced = synced.get(source.get("source_file"))
+        if last_synced:
+            last_synced = last_synced.replace(tzinfo=timezone.utc) if last_synced.tzinfo is None else last_synced
+            source["last_synced"] = last_synced.isoformat()
+            source["data_as_of"] = _format_data_as_of(last_synced)
+
+
 def _process_message(message: str, session_id: Optional[str], language_override: Optional[str]) -> dict:
     if len(message) > MAX_MESSAGE_LENGTH:
         raise HTTPException(status_code=400, detail="Message exceeds 1000 character limit.")
@@ -308,6 +360,8 @@ def _process_message(message: str, session_id: Optional[str], language_override:
         answer_text = translate(OUT_OF_SCOPE_MESSAGE, source_lang="en", target_lang=language)
         sources, confidence = [], "low"
 
+    _add_sync_dates(sources)
+
     session["history"].append({"role": "user", "message": message})
     session["history"].append({"role": "assistant", "message": answer_text})
     session["last_intent"] = intent
@@ -339,8 +393,6 @@ def health():
     try:
         import chromadb
 
-        from ..config import settings
-
         client = chromadb.PersistentClient(path=settings.chroma_persist_path)
         collection = client.get_or_create_collection(CHROMA_COLLECTION_NAME)
         embeddings_loaded = collection.count()
@@ -349,6 +401,66 @@ def health():
         embeddings_loaded = 0
 
     return {"status": "ok", "schemes_loaded": schemes_loaded, "embeddings_loaded": embeddings_loaded}
+
+
+@app.get("/sync/status")
+def sync_status_endpoint():
+    status = sync_status.get_sync_status()
+    try:
+        total_schemes = get_schemes_collection().count_documents({})
+    except Exception:
+        logger.exception("sync/status: failed to count MongoDB documents")
+        total_schemes = 0
+
+    if settings.sync_scheduler_enabled:
+        next_run = sync_scheduler.get_next_run_time() or sync_scheduler.next_default_run()
+    else:
+        next_run = None
+
+    return {
+        "last_sync": status["last_sync"],
+        "schemes_updated_last_sync": status["schemes_updated_last_sync"],
+        "total_schemes": total_schemes,
+        "next_scheduled_sync": next_run.isoformat(timespec="seconds") if next_run else None,
+        "sync_in_progress": status["sync_in_progress"],
+        "last_sync_failed": status["last_sync_failed"],
+    }
+
+
+@app.get("/sync/trigger")
+def sync_trigger(x_api_key: Optional[str] = Header(None)):
+    # Header (not query string) so the key doesn't end up in access logs.
+    if not settings.sync_api_key:
+        raise HTTPException(status_code=503, detail="Sync trigger is disabled: SYNC_API_KEY is not set.")
+    if not x_api_key or not hmac.compare_digest(x_api_key, settings.sync_api_key):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key.")
+    if sync_status.is_sync_running():
+        raise HTTPException(status_code=409, detail="A sync is already running.")
+    sync_scheduler.trigger_sync_in_background()
+    return {"status": "sync started", "check": "/sync/status"}
+
+
+@app.post("/feedback")
+def feedback(request: FeedbackRequest):
+    # One vote per (session, message): re-sending overwrites rather than duplicating.
+    try:
+        get_db()["feedback"].update_one(
+            {"session_id": request.session_id, "message_index": request.message_index},
+            {
+                "$set": {
+                    "rating": request.rating,
+                    "query": request.query[:MAX_MESSAGE_LENGTH],
+                    "intent": request.intent,
+                    "updated_at": datetime.now(timezone.utc),
+                },
+                "$setOnInsert": {"created_at": datetime.now(timezone.utc)},
+            },
+            upsert=True,
+        )
+    except Exception:
+        logger.exception("feedback: failed to store feedback")
+        raise HTTPException(status_code=503, detail="Could not store feedback right now.")
+    return {"status": "ok"}
 
 
 @app.post("/profile", response_model=ProfileResponse)

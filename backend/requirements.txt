@@ -30,3 +30,6 @@ uvicorn
 websockets
 ragas
 certifi
+apscheduler>=3.10,<4     # chatbot/backend/sync/scheduler.py (3.x API)
+beautifulsoup4           # chatbot/backend/sync/scheme_sync.py
+requests                 # chatbot/backend/sync/scheme_sync.py

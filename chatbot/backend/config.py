@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     ollama_model: str = Field(default="qwen2.5:3b", alias="OLLAMA_MODEL")
     ollama_base_url: str = Field(default="http://localhost:11434", alias="OLLAMA_BASE_URL")
     chroma_persist_path: str = Field(default="chatbot/data/chroma_db", alias="CHROMA_PERSIST_PATH")
+    myscheme_base_url: str = Field(default="https://api.myscheme.gov.in", alias="MYSCHEME_BASE_URL")
+    myscheme_site_url: str = Field(default="https://www.myscheme.gov.in", alias="MYSCHEME_SITE_URL")
+    myscheme_api_key: str = Field(default="", alias="MYSCHEME_API_KEY")
+    sync_api_key: str = Field(default="", alias="SYNC_API_KEY")
+    sync_scheduler_enabled: bool = Field(default=True, alias="SYNC_SCHEDULER_ENABLED")
 
     class Config:
         env_file = str(ENV_PATH)

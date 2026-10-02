@@ -1,15 +1,24 @@
 import { useEffect, useRef, useState } from 'react'
 
-const PLACEHOLDERS = {
-  en: 'Ask about any government scheme...',
-  hi: 'किसी भी सरकारी योजना के बारे में पूछें...',
-  ta: 'எந்த அரசு திட்டத்தைப் பற்றியும் கேளுங்கள்...',
-}
+const PLACEHOLDERS = [
+  'Ask about any government scheme...',
+  'Try: What schemes are available for farmers?',
+  'Try: Am I eligible for a housing scheme?',
+  'Try: किसानों के लिए योजनाएं क्या हैं?',
+  'Try: பெண்களுக்கான திட்டங்கள் என்ன?',
+]
+const PLACEHOLDER_ROTATE_MS = 3000
 
-export default function InputBar({ language, onSend, onFileSelect, disabled, prefill }) {
+export default function InputBar({ onSend, onFileSelect, disabled, prefill }) {
   const [text, setText] = useState('')
   const fileInputRef = useRef(null)
   const textareaRef = useRef(null)
+  const [placeholderIndex, setPlaceholderIndex] = useState(0)
+
+  useEffect(() => {
+    const id = setInterval(() => setPlaceholderIndex((i) => (i + 1) % PLACEHOLDERS.length), PLACEHOLDER_ROTATE_MS)
+    return () => clearInterval(id)
+  }, [])
 
   useEffect(() => {
     if (!prefill) return
@@ -71,7 +80,7 @@ export default function InputBar({ language, onSend, onFileSelect, disabled, pre
             onChange={(e) => setText(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={disabled}
-            placeholder={PLACEHOLDERS[language] || PLACEHOLDERS.en}
+            placeholder={PLACEHOLDERS[placeholderIndex]}
             className="max-h-32 w-full resize-none bg-transparent text-sm text-text-primary placeholder:text-text-secondary focus:outline-none disabled:opacity-50"
           />
         </div>

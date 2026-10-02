@@ -5,6 +5,7 @@ import ConnectionBanner from './components/ConnectionBanner'
 import EligibilityPanel from './components/EligibilityPanel'
 import HeroChatWidget from './components/HeroChatWidget'
 import InputBar from './components/InputBar'
+import SyncStatusBadge from './components/SyncStatusBadge'
 import { useChatSocket } from './hooks/useChatSocket'
 import { API_BASE, LANGUAGES } from './utils/api'
 import { getSessionId, resetSessionId } from './utils/session'
@@ -298,21 +299,24 @@ export default function App() {
             New Conversation
           </button>
         </div>
-        <div className="flex gap-1">
-          {LANGUAGES.map((lang) => (
-            <button
-              key={lang.code}
-              type="button"
-              onClick={() => setLanguage(lang.code)}
-              className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
-                language === lang.code
-                  ? 'bg-accent text-white'
-                  : 'bg-white/20 text-white hover:bg-white/30'
-              }`}
-            >
-              {lang.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-3">
+          <SyncStatusBadge />
+          <div className="flex gap-1">
+            {LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                onClick={() => setLanguage(lang.code)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  language === lang.code
+                    ? 'bg-accent text-white'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+              >
+                {lang.label}
+              </button>
+            ))}
+          </div>
         </div>
       </header>
 
@@ -484,7 +488,12 @@ export default function App() {
         {inChat && (
           <div className="flex h-[calc(100vh-4rem)] min-h-0 flex-col sm:flex-row">
             <div className="flex min-h-0 flex-1 flex-col">
-              <ChatWindow messages={messages} isTyping={isTyping || uploading} onExampleClick={handleSend} />
+              <ChatWindow
+                messages={messages}
+                isTyping={isTyping || uploading}
+                onExampleClick={handleSend}
+                sessionId={sessionId}
+              />
               <div id="chat-input">
                 <InputBar
                   language={language}

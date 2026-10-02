@@ -60,7 +60,14 @@ function SchemeCards({ sources }) {
   )
 }
 
-export default function ChatWindow({ messages, isTyping, onExampleClick }) {
+function precedingUserText(messages, index) {
+  for (let i = index - 1; i >= 0; i--) {
+    if (messages[i].role === 'user') return messages[i].text
+  }
+  return ''
+}
+
+export default function ChatWindow({ messages, isTyping, onExampleClick, sessionId }) {
   const bottomRef = useRef(null)
 
   useEffect(() => {
@@ -91,13 +98,17 @@ export default function ChatWindow({ messages, isTyping, onExampleClick }) {
         </div>
       )}
 
-      {messages.map((msg) => (
+      {messages.map((msg, index) => (
         <div key={msg.id} className="space-y-2">
           <MessageBubble
             role={msg.role}
             text={msg.text}
             confidence={msg.confidence}
             sources={msg.sources}
+            sessionId={sessionId}
+            messageIndex={index}
+            query={precedingUserText(messages, index)}
+            intent={msg.intent}
           />
           {msg.role === 'assistant' &&
             (msg.intent === 'scheme_search' || msg.intent === 'comparison') && (

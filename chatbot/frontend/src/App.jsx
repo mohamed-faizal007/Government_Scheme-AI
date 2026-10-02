@@ -328,16 +328,16 @@ export default function App() {
             inChat ? 'max-h-0 opacity-0' : 'max-h-[6000px] opacity-100'
           }`}
         >
-        <section className="hero-section relative flex min-h-[600px] items-center px-4 py-12 sm:py-16">
+        <section className="hero-section relative flex items-center px-4 py-8 sm:py-10">
           <div className="hero-grid-overlay" />
           <div className="hero-blob hero-blob-1" />
           <div className="hero-blob hero-blob-2" />
           <div className="hero-blob hero-blob-3" />
           <div className="hero-blob hero-blob-4" />
 
-          <div className="relative mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 lg:grid-cols-2">
+          <div className="relative mx-auto grid w-full max-w-6xl grid-cols-1 items-center gap-8 lg:grid-cols-2">
             {/* Left column */}
-            <div className="flex flex-col items-start gap-6 text-left">
+            <div className="flex flex-col items-start gap-4 text-left">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-light px-3 py-1.5 text-xs font-semibold text-amber sm:text-sm">
                 🇮🇳 Powered by AI · 2,066 Schemes
               </span>

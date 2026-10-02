@@ -140,7 +140,7 @@ export default function HeroChatWidget({
   }
 
   return (
-    <div id="hero-chat-widget" className="hidden lg:block">
+    <div id="hero-chat-widget" className="hidden self-center lg:block">
       <div
         className="mx-auto flex h-[480px] w-[380px] flex-col overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
         style={{ backgroundColor: '#16213E' }}

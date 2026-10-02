@@ -232,3 +232,6 @@ chatbot/.env
 chatbot/data/
 batch_run_200_output.txt
 venv_old/
+
+# Scheme sync run logs
+chatbot/data/sync_logs/

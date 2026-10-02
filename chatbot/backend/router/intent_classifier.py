@@ -24,6 +24,32 @@ SCHEME_SEARCH_PATTERNS = [
     r"\bdocuments?\b.*\b(?:required|needed|need)\b", r"\b(?:need|require)\b.*\bdocuments?\b",
     r"how much\b", r"how do i (?:claim|get)\b", r"what does\b.*\bprovide\b",
     r"what benefits\b", r"\bwhich scheme\b",
+    # Typical English renderings of Hindi/Tamil scheme-search questions.
+    r"\bwhat schemes?\b", r"\bwhich schemes?\b", r"\bgovernment schemes?\b",
+    r"\bschemes? for (?:farmers?|women|students?)\b", r"\bwhat are the schemes?\b",
+    r"\btell me (?:the |about )?schemes?\b", r"\bavailable schemes?\b",
+]
+
+# Native-script keywords, checked before any translation. Substring match
+# (no \b) because Indic scripts inflect heavily (योजना / योजनाओं / योजनाएं).
+# Eligibility is checked first; "पात्र" must not swallow "पात्रता" (a scheme
+# search term), hence the negative lookahead.
+NATIVE_ELIGIBILITY_PATTERNS = [
+    r"पात्र(?!ता)", r"योग्य", r"आवेदन कर सकता", r"मैं पात्र",
+    r"தகுதியானவர்",
+]
+
+NATIVE_DOCUMENT_PATTERNS = [
+    r"दस्तावेज अपलोड", r"प्रमाण पत्र",
+]
+
+NATIVE_SCHEME_SEARCH_PATTERNS = [
+    # Hindi
+    r"योजना", r"स्कीम", r"सब्सिडी", r"लाभ", r"पात्रता", r"आवेदन", r"दस्तावेज",
+    r"किसान", r"महिला", r"छात्र", r"शिक्षा", r"आवास", r"स्वास्थ्य", r"रोजगार", r"व्यवसाय",
+    # Tamil
+    r"திட்ட", r"மானியம்", r"நலன்", r"தகுதி", r"விண்ணப்பம்", r"ஆவணம்",
+    r"விவசாயி", r"மகளிர்", r"மாணவர்", r"கல்வி", r"வீட்டுவசதி",
 ]
 
 CATEGORY_PATTERNS = {
@@ -106,6 +132,14 @@ def extract_entities(query: str) -> dict:
 
 def classify(query: str) -> dict:
     entities = extract_entities(query)
+
+    # Native-script pre-check: runs before (and independent of) translation.
+    if _match_any(NATIVE_ELIGIBILITY_PATTERNS, query):
+        return {"intent": "eligibility_check", "confidence": 0.85, "extracted_entities": entities}
+    if _match_any(NATIVE_DOCUMENT_PATTERNS, query):
+        return {"intent": "document_upload", "confidence": 0.85, "extracted_entities": entities}
+    if _match_any(NATIVE_SCHEME_SEARCH_PATTERNS, query):
+        return {"intent": "scheme_search", "confidence": 0.85, "extracted_entities": entities}
 
     if _match_any(ELIGIBILITY_PATTERNS, query):
         return {"intent": "eligibility_check", "confidence": 0.9, "extracted_entities": entities}

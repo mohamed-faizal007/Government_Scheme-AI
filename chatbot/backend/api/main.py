@@ -182,6 +182,14 @@ def _is_non_latin_script(text: str) -> bool:
     return any(ord(ch) > 0x2FF for ch in text)
 
 
+def _is_translation_failed(original: str, translated: str, language: str) -> bool:
+    """True when inward translation produced nothing usable for the English classifier."""
+    if language == "en" or not _is_non_latin_script(original):
+        return False
+    if translated.strip() == original.strip():
+        return True  # translate() silently returned the input
+    return len(translated.split()) < 3  # too short to carry intent
+
 def _apply_entities(profile: UserProfile, entities: dict) -> None:
     for entity_key, profile_field in ENTITY_TO_PROFILE_FIELD.items():
         if entity_key in entities:
@@ -325,8 +333,13 @@ def _process_message(message: str, session_id: Optional[str], language_override:
     # English-only classifier verbatim and fail — default it to
     # scheme_search instead, which is the overwhelmingly common intent for
     # untranslatable non-English queries on this platform.
-    translation_failed = language != "en" and classification_query == message and _is_non_latin_script(message)
-    if translation_failed:
+    # Native-script keyword pre-check runs on the original text, before
+    # trusting the translation.
+    native = classify(message) if language != "en" else None
+    if native and native["intent"] != "out_of_scope":
+        intent = native["intent"]
+        entities = native["extracted_entities"]
+    elif _is_translation_failed(message, classification_query, language):
         intent = "scheme_search"
         entities = {}
     else:

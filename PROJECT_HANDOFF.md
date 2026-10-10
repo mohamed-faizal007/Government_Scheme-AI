@@ -1,7 +1,7 @@
 # Government Scheme AI — Project Handoff Document
 
-Last updated: September 2026
-Status: Extraction pipeline complete (488/2066 PDFs). Chatbot build starting.
+Last updated: October 2026
+Status: Extraction pipeline complete (488/2066 PDFs). Chatbot built (backend, frontend, sync pipeline, evaluation).
 
 ---
 
@@ -29,11 +29,10 @@ https://github.com/mohamed-faizal007/Government_Scheme-AI
 
 Active branch:
 ```
-feature/unstructured-extraction
+main
 ```
 
-This branch has NEVER been merged to main. All pipeline work lives here.
-Do not merge to main until all 2,066 PDFs are processed and validated.
+Work is committed directly on `main`.
 
 ---
 
@@ -231,17 +230,38 @@ Note: `overview.description` is populated for 100% of files (orphan content capt
 
 ---
 
+## Features Completed Since Last Update
+
+- Scheduled sync pipeline (`chatbot/backend/sync/`) with a Playwright-based scraper
+- Feedback system (thumbs up/down stored in MongoDB)
+- Data freshness indicators
+- Sync status header badge
+- Hindi and Tamil native-script intent classification fix (keyword matching before translation fallback)
+- Frontend widget with sample messages
+- FAQ section (9 cards, EN/HI/TA)
+- Rotating placeholder text in the input bar
+- Evaluation harness: `eval_rag.py` now supports `--ids 12,15,23` and `--pause` (default 3s between LLM calls)
+
+---
+
 ## Chatbot Evaluation Results
 
-Evaluation harness: `chatbot/evaluation/`.
+Evaluation harness: `chatbot/evaluation/`. Full detail in `EVAL_REPORT.md`. Latest run: 2026-10-10 (run from repo root with `python -m chatbot.evaluation.eval_rag` — running from another directory creates an empty ChromaDB and silently breaks retrieval).
 
 | Metric | Result |
 |---|---|
 | Eligibility accuracy | 95% (19/20) |
-| Source citation rate | 28% |
-| Out-of-scope decline rate | 100% |
+| Source citation rate | 30% (15/50) |
+| Out-of-scope decline rate | 80% (8/10) |
+| Retrieval spot-check (top 5) | 70% (7/10) |
+| Average response time | 28.9s (Groq 429 retries + Ollama fallback) |
 
-**Known limitation:** Hindi/Tamil queries misroute to `out_of_scope`. The intent classifier (`chatbot/backend/router/intent_classifier.py`) is English-only regex, so non-English input never matches an intent pattern and falls through to the out-of-scope path regardless of the query's actual content.
+**Known limitations:**
+- Out-of-scope leak: "What is the capital of France?" matches the `what is` pattern, routes to `scheme_search`, and the LLM answers "Paris". A Tamil cricket question also gets a non-decline answer. The generator needs a stricter grounding guard.
+- Tamil scheme queries (ids 5, 6, 18, 26) are routed correctly but return the fallback decline; retrieval does not find the scheme from Tamil text. Tamil answers are also returned in English (no en-ta translation model).
+- Eligibility engine evaluates merged multi-clause condition strings as one unit (Airavata Scheme case fails).
+- Groq free-tier rate limits (429) trigger the Ollama fallback during evals, so some eval answers come from a different model.
+- Only 488 of 2,066 schemes are loaded; schemes outside this set (e.g. PM-Kisan) cannot be found.
 
 ---
 
@@ -257,7 +277,6 @@ Each batch takes ~70 minutes. Safe to run overnight.
 After all 2,066 done:
 1. Re-run MongoDB and ChromaDB ingestion scripts
 2. Run final schema validation
-3. Merge `feature/unstructured-extraction` into `main` via PR
 
 ### To Resume in a New Claude Session
 Paste this at the start:
@@ -270,7 +289,7 @@ I'm continuing an existing project. Read these files before doing anything:
 Confirm branch:
   git rev-parse --show-toplevel
   git branch --show-current
-Expected: C:/Faizal/Government_Scheme-AI, feature/unstructured-extraction
+Expected: C:/Faizal/Government_Scheme-AI, main
 
 Then tell me what you want to do next.
 ```

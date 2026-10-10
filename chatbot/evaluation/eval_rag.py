@@ -3,7 +3,10 @@ and reports decline rate on out-of-scope queries, source citation rate, average
 response time, and a manual retrieval spot-check on the 10 scheme-search queries.
 
 Run: python -m chatbot.evaluation.eval_rag  (from repo root)
+     python -m chatbot.evaluation.eval_rag --ids 12,15,23   (only those query ids)
+     python -m chatbot.evaluation.eval_rag --pause 0        (no pause between LLM calls)
 """
+import argparse
 import json
 import sys
 import time
@@ -15,6 +18,8 @@ from chatbot.backend.api.main import _process_message
 from chatbot.backend.rag.generator import DECLINE_MESSAGE
 from chatbot.backend.retrieval.retriever import retrieve
 
+DEFAULT_PAUSE_S = 3.0  # spacing between LLM calls to avoid Groq 429s
+
 QUERIES_PATH = Path(__file__).resolve().parent / "test_queries.json"
 
 
@@ -23,7 +28,7 @@ def load_queries() -> list[dict]:
         return json.load(f)
 
 
-def run_full_pipeline(queries: list[dict]) -> list[dict]:
+def run_full_pipeline(queries: list[dict], pause_s: float = DEFAULT_PAUSE_S) -> list[dict]:
     results = []
     for q in queries:
         start = time.perf_counter()
@@ -51,6 +56,9 @@ def run_full_pipeline(queries: list[dict]) -> list[dict]:
         print(f"[{q['id']:>2}] {q['category']:<18} intent={result['intent']:<16} "
               f"{elapsed:5.2f}s  sources={len(result['sources'])}  "
               f"{q['query'][:60]}")
+        # Only queries that can reach the LLM need spacing; short-circuits return instantly.
+        if pause_s > 0 and result["intent"] not in ("out_of_scope", "error"):
+            time.sleep(pause_s)
     return results
 
 
@@ -112,17 +120,34 @@ def spot_check_retrieval(queries: list[dict]) -> list[dict]:
     return spot_checks
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--ids", help="comma-separated query ids to run, e.g. 12,15,23")
+    parser.add_argument("--pause", type=float, default=DEFAULT_PAUSE_S,
+                        help=f"seconds to wait after each LLM-bound query (default {DEFAULT_PAUSE_S})")
+    return parser.parse_args()
+
+
 def main():
     sys.stdout.reconfigure(encoding="utf-8")
+    args = parse_args()
     queries = load_queries()
 
+    subset = args.ids is not None
+    if subset:
+        wanted = {int(i) for i in args.ids.split(",") if i.strip()}
+        queries = [q for q in queries if q["id"] in wanted]
+        missing = wanted - {q["id"] for q in queries}
+        if missing:
+            sys.exit(f"Unknown query ids: {sorted(missing)}")
+
     print("=" * 70)
-    print("Running all 50 queries through the full chat pipeline...")
+    print(f"Running {len(queries)} queries through the full chat pipeline...")
     print("=" * 70)
-    results = run_full_pipeline(queries)
+    results = run_full_pipeline(queries, args.pause)
 
     print("\n" + "=" * 70)
-    print("Manual retrieval spot-check on 10 scheme-search queries")
+    print("Manual retrieval spot-check on scheme-search queries")
     print("=" * 70)
     spot_checks = spot_check_retrieval(queries)
     retrieval_hits = sum(1 for s in spot_checks if s["found_in_top5"])
@@ -140,7 +165,9 @@ def main():
     for k, v in metrics.items():
         print(f"  {k}: {v}")
 
-    out_path = Path(__file__).resolve().parent / "eval_rag_results.json"
+    # A subset run must not overwrite the full-run results file.
+    out_name = "eval_rag_results_subset.json" if subset else "eval_rag_results.json"
+    out_path = Path(__file__).resolve().parent / out_name
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump({"metrics": metrics, "results": results, "spot_checks": spot_checks}, f, indent=2, ensure_ascii=False)
     print(f"\nFull results written to {out_path}")

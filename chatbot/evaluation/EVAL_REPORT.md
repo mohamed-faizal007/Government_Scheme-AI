@@ -1,6 +1,44 @@
 # Phase 10 — Evaluation Report
 
-Run date: 2026-09-15
+Run date: 2026-10-10 (re-run after intent-classifier and engine fixes; supersedes the 2026-09-15 run)
+LLM: Groq `openai/gpt-oss-20b`. Embeddings: `multilingual-e5-small`.
+
+Raw outputs: `eval_rag_results.json`, `eval_eligibility_results.json`.
+
+## Current results (2026-10-10)
+
+Setup: Groq `openai/gpt-oss-20b` primary; 11 of the LLM-bound queries exhausted Groq's rate-limit retries (45 HTTP 429 responses logged) and were answered by the Ollama fallback instead, so some answers come from a different model. This also inflates response time. Embeddings: `multilingual-e5-small`. Data: 488 schemes (MongoDB), 1,952 chunks (ChromaDB). Fixes since the 09-15 run: native Hindi/Tamil intent classification, empty-number guards in the income parsing (classifier and rules engine).
+
+### RAG (50 queries)
+
+| Metric | 2026-09-15 | 2026-10-10 |
+|---|---|---|
+| Out-of-scope decline rate | 100% (10/10) | **80%** (8/10) |
+| Source citation rate | 10% (5/50) | **30%** (15/50) |
+| Average response time | 4.73s | **28.9s** (429 retries + Ollama fallback) |
+| Retrieval spot-check (top 5) | 70% (7/10) | **70%** (7/10) |
+| Queries answered with the fallback decline message | n/a | 4 (ids 5, 6, 18, 26 — all Tamil) |
+| Pipeline errors | 0 | **0** (query 12 float error fixed) |
+
+Findings:
+- **Decline rate dropped to 80% — a real leak, not noise.** Query 35 ("What is the capital of France?") is routed to `scheme_search` by the `what is` pattern and, now that retrieval works, the LLM answered "The capital of France is Paris." Query 38 (Tamil cricket question) is also routed to `scheme_search` and got a rambling non-decline answer. The 09-15 grounding-check safety net no longer catches these; the generator needs a stricter "answer only from retrieved context" guard.
+- **Tamil scheme queries still fail** (ids 5, 6, 18, 26 return the fallback). The classifier fix routes them to the right intent, but retrieval/generation for Tamil text does not find the scheme.
+- **Retrieval spot-check misses** are unchanged: q5 and q6 (Tamil), q9 (Hindi PM-Kisan, scheme not in the 488-doc dataset).
+- Response time is dominated by Groq rate limiting; a 3s pause and `--ids` flag were added to `eval_rag.py` for future runs.
+
+### Eligibility engine (20 cases)
+
+| Metric | 2026-09-15 | 2026-10-10 |
+|---|---|---|
+| Accuracy | 85% (17/20) | **95%** (19/20) |
+| Cases with unverifiable conditions | 100% | 100% |
+
+Remaining failure: "SC category, Karnataka, age 25 -> eligible for Airavata Scheme" returns not-eligible. The extracted condition is a single merged numbered paragraph (SC + Karnataka + other clauses); one sub-clause fails and the whole string is judged failed. Same root cause as finding 1 below.
+
+---
+
+# Previous run (2026-09-15, historical)
+
 Dataset state: 488/2,066 scheme PDFs processed and loaded (MongoDB: 488 docs, ChromaDB: 1,952 chunks).
 LLM: Groq `openai/gpt-oss-20b`. Embeddings: `multilingual-e5-small`.
 

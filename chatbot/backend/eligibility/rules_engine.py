@@ -25,8 +25,11 @@ NEGATION_PATTERN = r"\bnon-?resident|non-?[a-z]+|\bnot\s+(?:a|an|be|residing|lis
 _AMOUNT_UNITS = {"lakh": 100_000, "lakhs": 100_000, "crore": 10_000_000, "crores": 10_000_000}
 
 
-def _to_amount(number_str: str, unit: str | None) -> float:
-    value = float(number_str.replace(",", ""))
+def _to_amount(number_str: str, unit: str | None) -> float | None:
+    cleaned = number_str.replace(",", "").strip()
+    if not cleaned:  # regex can match a bare "," — nothing to convert
+        return None
+    value = float(cleaned)
     return value * _AMOUNT_UNITS.get((unit or "").lower(), 1)
 
 
@@ -103,6 +106,8 @@ def _check_income(text: str, income: float | None) -> str | None:
         number = m.group(1) or m.group(3)
         unit = m.group(2) or m.group(4)
         value = _to_amount(number, unit)
+        if value is None:
+            return "unverifiable"
         return "unverifiable" if income is None else ("pass" if income <= value else "fail")
 
     below_keywords = r"less than|below|not exceeding|(?:shall|should|does|do)\s+not\s+exceed|up to"
@@ -115,6 +120,8 @@ def _check_income(text: str, income: float | None) -> str | None:
         number = m.group(1) or m.group(3)
         unit = m.group(2) or m.group(4)
         value = _to_amount(number, unit)
+        if value is None:
+            return "unverifiable"
         return "unverifiable" if income is None else ("pass" if income <= value else "fail")
 
     if re.search(r"\bincome\b", t):

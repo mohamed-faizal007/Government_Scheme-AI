@@ -121,7 +121,10 @@ def extract_entities(query: str) -> dict:
     for pattern in INCOME_PATTERNS:
         match = re.search(pattern, query, re.IGNORECASE)
         if match:
-            amount = float(match.group(1).replace(",", ""))
+            raw = match.group(1).replace(",", "").strip()
+            if not raw:  # bare "," match — skip, try next pattern
+                continue
+            amount = float(raw)
             unit = (match.group(2) or "").lower()
             multiplier = MULTIPLIERS.get(unit, 1)
             entities["income"] = amount * multiplier

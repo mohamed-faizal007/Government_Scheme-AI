@@ -28,9 +28,23 @@ def load_queries() -> list[dict]:
         return json.load(f)
 
 
+# Tamil queries that returned the fallback decline: show raw retrieval to tell
+# a retrieval failure apart from a generation failure.
+RETRIEVAL_DEBUG_IDS = {5, 6, 18, 26}
+
+
+def print_retrieval_debug(q: dict) -> None:
+    hits = retrieve(q["query"], top_k=5)
+    print(f"      retrieve(): {len(hits)} results for q{q['id']}")
+    for h in hits:
+        print(f"        - {h['scheme_name']}  [{h['section']}]  score={h['score']:.3f}")
+
+
 def run_full_pipeline(queries: list[dict], pause_s: float = DEFAULT_PAUSE_S) -> list[dict]:
     results = []
     for q in queries:
+        if q["id"] in RETRIEVAL_DEBUG_IDS:
+            print_retrieval_debug(q)
         start = time.perf_counter()
         try:
             result = _process_message(q["query"], session_id=None, language_override=None)

@@ -134,6 +134,17 @@ def generate(
 
     answer, confidence = _parse_response(raw)
 
+    # Grounding check: a confident answer that names none of the retrieved schemes
+    # was produced from the LLM's own knowledge (e.g. "Paris"), not from context.
+    lowered_answer = answer.lower()
+    if confidence == "high" and not any(
+        hit["scheme_name"].strip().lower() in lowered_answer
+        for hit in retrieved_schemes
+        if hit.get("scheme_name", "").strip()
+    ):
+        logger.warning("generator: high-confidence answer names no retrieved scheme, declining")
+        answer = DECLINE_MESSAGE
+
     declined = DECLINE_MESSAGE.strip().lower() in answer.strip().lower()
     sources = []
     if not declined:

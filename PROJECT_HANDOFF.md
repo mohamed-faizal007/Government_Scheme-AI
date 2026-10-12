@@ -1,7 +1,7 @@
 # Government Scheme AI — Project Handoff Document
 
 Last updated: October 2026
-Status: Extraction pipeline complete (488/2066 PDFs). Chatbot built (backend, frontend, sync pipeline, evaluation).
+Status: Extraction in progress (488/2066 PDFs processed). Chatbot built (backend, frontend, sync pipeline, evaluation).
 
 ---
 
@@ -45,16 +45,9 @@ Work is committed directly on `main`.
 - To continue: run `python backend/extraction/batch_run_200.py` (processes next 200)
 - Resume is safe at any time — idempotent, never reprocesses completed files
 
-### Git Log (as of last session)
-```
-fbf9039  Add Unstructured hi_res + embedding classifier pipeline (5-PDF validation)
-         + all bug fixes from this session (committed together)
-ecf4266  Merge pull request #1 from mohamed-faizal007/feature/docling-parser
-6a05b02  Implement Gemini-based PDF extraction pipeline
-ae051e2  Add dataset download, validation, and PDF extraction pipeline
-460254e  Initialize project structure
-6fe4ee4  Initial commit
-```
+### Git
+- Active branch: `main`
+- Last commit: `34c3484` — Tamil retrieval fallback chain, document known limitation
 
 ---
 
@@ -230,17 +223,21 @@ Note: `overview.description` is populated for 100% of files (orphan content capt
 
 ---
 
-## Features Completed Since Last Update
+## Recently Completed Work
 
-- Scheduled sync pipeline (`chatbot/backend/sync/`) with a Playwright-based scraper
-- Feedback system (thumbs up/down stored in MongoDB)
-- Data freshness indicators
-- Sync status header badge
-- Hindi and Tamil native-script intent classification fix (keyword matching before translation fallback)
-- Frontend widget with sample messages
-- FAQ section (9 cards, EN/HI/TA)
-- Rotating placeholder text in the input bar
-- Evaluation harness: `eval_rag.py` now supports `--ids 12,15,23` and `--pause` (default 3s between LLM calls)
+- Scheduled sync pipeline (`chatbot/backend/sync/`)
+- Playwright-based scraper for the sync pipeline
+- Feedback system (thumbs up/down stored in the MongoDB `feedback` collection)
+- Data freshness indicators in the chat UI
+- Sync status header badge (green/amber/grey)
+- Hindi and Tamil native-script intent classification (keyword matching before translation fallback)
+- Frontend widget with 3 sample messages on the hero page
+- FAQ section (9 cards, EN/HI/TA) wired to the widget
+- Rotating placeholder text in InputBar
+- Generator grounding check (prevents the LLM answering from memory)
+- Eligibility float error fix
+- Tamil retrieval fallback chain (Google → argostranslate → original query); in practice falls through to the original query, see limitations
+- `eval_rag.py` `--ids` and `--pause` flags (`--pause` default 3s between LLM calls)
 
 ---
 
@@ -256,27 +253,28 @@ Evaluation harness: `chatbot/evaluation/`. Full detail in `EVAL_REPORT.md`. Late
 | Retrieval spot-check (top 5) | 70% (7/10) |
 | Average response time | 28.9s (Groq 429 retries + Ollama fallback) |
 
-**Known limitations:**
-- Out-of-scope leak: "What is the capital of France?" matches the `what is` pattern, routes to `scheme_search`, and the LLM answers "Paris". A Tamil cricket question also gets a non-decline answer. The generator needs a stricter grounding guard.
-- Tamil scheme queries (ids 5, 6, 18, 26) are routed correctly but return the fallback decline; retrieval does not find the scheme from Tamil text. Tamil answers are also returned in English (no en-ta translation model).
+**Note:** out-of-scope decline was 100% in the earlier run; the latest run shows 80% because two queries (e.g. "What is the capital of France?") were answered from LLM memory. A generator grounding check has since been added; re-run the eval to confirm it closes the leak.
+
+---
+
+## Known Limitations
+
+- **Tamil output translation:** pending IndicTrans2 (needs MSVC Build Tools). argostranslate has no en↔ta model, so Tamil answers are returned in English.
+- **Tamil specific scheme-name retrieval:** fails for Tamil-script scheme names (eval ids 5, 6, 18, 26) because multilingual-e5-small does not embed them accurately; broad category queries (farmers, women's schemes) work. Google translation of the query is rate-limited/blocked from this machine and argostranslate has no Tamil package, so the fallback chain searches with the original query.
+- **MyScheme sync:** needs API key registration OR Google unblock for the Playwright scraper.
+- **Groq rate limits:** the free tier causes fallback to Ollama on heavy eval runs (11 queries in the latest run), inflating response time and mixing models in eval answers.
 - Eligibility engine evaluates merged multi-clause condition strings as one unit (Airavata Scheme case fails).
-- Groq free-tier rate limits (429) trigger the Ollama fallback during evals, so some eval answers come from a different model.
 - Only 488 of 2,066 schemes are loaded; schemes outside this set (e.g. PM-Kisan) cannot be found.
 
 ---
 
-## What to Do Next
+## Remaining Work (in order)
 
-### Immediate — Start Chatbot Build
-Paste `CHATBOT_IMPLEMENTATION_PROMPT.md` into a new Claude Code session.
-Build on the 488 existing JSONs — do not wait for all 2,066.
-
-### Background — Complete PDF Processing
-Run `python backend/extraction/batch_run_200.py` in batches of 200.
-Each batch takes ~70 minutes. Safe to run overnight.
-After all 2,066 done:
-1. Re-run MongoDB and ChromaDB ingestion scripts
-2. Run final schema validation
+1. Install MSVC Build Tools → IndicTrans2 for Tamil translation (query and output)
+2. Process remaining 1,578 PDFs (`python backend/extraction/batch_run_200.py`, 200 per batch, ~70 min each, idempotent)
+3. Re-ingest the full dataset into MongoDB + ChromaDB
+4. Final evaluation on the complete dataset
+5. MyScheme API key, or unblock Google, for the sync pipeline
 
 ### To Resume in a New Claude Session
 Paste this at the start:

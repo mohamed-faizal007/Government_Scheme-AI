@@ -1,0 +1,65 @@
+{
+  "metrics": {
+    "total_queries": 2,
+    "out_of_scope_total": 0,
+    "out_of_scope_declined": 0,
+    "decline_rate_pct": 0.0,
+    "source_citation_rate_pct": 0.0,
+    "avg_response_time_s": 12.312,
+    "retrieval_spot_check_hits": 0,
+    "retrieval_spot_check_total": 2,
+    "retrieval_spot_check_pct": 0.0
+  },
+  "results": [
+    {
+      "id": 5,
+      "category": "scheme_search",
+      "query": "ஐராவதா திட்டம் பற்றி சொல்லுங்கள்",
+      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
+      "sources": [],
+      "confidence": "low",
+      "intent": "scheme_search",
+      "response_time_s": 6.719,
+      "error": null
+    },
+    {
+      "id": 6,
+      "category": "scheme_search",
+      "query": "அம்மா இரு சக்கர வண்டி திட்டம் பற்றி விவரம் தேவை",
+      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
+      "sources": [],
+      "confidence": "low",
+      "intent": "scheme_search",
+      "response_time_s": 17.904,
+      "error": null
+    }
+  ],
+  "spot_checks": [
+    {
+      "id": 5,
+      "query": "ஐராவதா திட்டம் பற்றி சொல்லுங்கள்",
+      "expected_scheme": "Airavata Scheme",
+      "top5_scheme_names": [
+        "Cancer Suraksha Scheme",
+        "Border Areas Development Department",
+        "Atma Nirbhar Krishi Yojana",
+        "Allowance To Dwarf",
+        "Aamar Dukan On Wheels"
+      ],
+      "found_in_top5": false
+    },
+    {
+      "id": 6,
+      "query": "அம்மா இரு சக்கர வண்டி திட்டம் பற்றி விவரம் தேவை",
+      "expected_scheme": "Amma Two Wheeler Scheme for Working Women",
+      "top5_scheme_names": [
+        "Cancer Suraksha Scheme",
+        "Border Areas Development Department",
+        "Aamar Dukan On Wheels",
+        "Coconut Palm Insurance Scheme",
+        "Abhinandan Education Loan Subsidy Scheme"
+      ],
+      "found_in_top5": false
+    }
+  ]
+}

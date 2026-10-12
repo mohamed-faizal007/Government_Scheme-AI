@@ -47,7 +47,7 @@ Work is committed directly on `main`.
 
 ### Git
 - Active branch: `main`
-- Last commit: `34c3484` — Tamil retrieval fallback chain, document known limitation
+- Last commit: `35fa68a` — Tamil translation: Helsinki-NLP offline model, scheme name protection, numbered list preservation
 
 ---
 
@@ -148,7 +148,7 @@ These affect `dataset/gov_myscheme/test_output_unstructured/` JSONs. They do not
 
 Root cause of FAQ-in-benefits: heading-vocabulary terms like `"financial assistance"` and `"benefits"` appear naturally in FAQ prose, causing the classifier to re-fire inside FAQ content and misroute it. Three structural heuristics were investigated and falsified (proximity clustering, pipeline reordering, content-window length). An LLM post-processing pass (`postprocess_faq.py`) was designed and partially validated but not used — Gemini free tier hit a 20 requests/day RPD cap, and local Qwen was rejected as too unreliable. Accepted as-is for RAG use case where field-level placement does not matter.
 
-**Tamil translation** (Phase 7): argostranslate has no en↔ta model. Tamil queries retrieve correctly (multilingual-e5-small handles Tamil natively) but answers are returned in English. Fix: install MSVC Build Tools and switch to IndicTrans2.
+**Tamil translation** (Phase 7): argostranslate has no en↔ta model, and Helsinki-NLP has no bilingual ta↔en model. Resolved with the Helsinki-NLP Dravidian models `opus-mt-dra-en` (ta→en, used for retrieval and intent classification) and `opus-mt-en-dra` (en→ta with a `>>tam<<` prefix, used for output). They run locally via `MarianTokenizer`/`MarianMTModel` (the `pipeline("translation")` task was removed in transformers 5.x), load lazily on first use, and fall back to the original text on failure. Scheme names are kept in English in Tamil responses and numbered lists/markdown are preserved (`translate(..., schemes=...)` in `translator.py`). Translation quality is only moderate: structure and names are reliable, but descriptive Tamil prose can be garbled or lose figures.
 
 ---
 
@@ -236,7 +236,8 @@ Note: `overview.description` is populated for 100% of files (orphan content capt
 - Rotating placeholder text in InputBar
 - Generator grounding check (prevents the LLM answering from memory)
 - Eligibility float error fix
-- Tamil retrieval fallback chain (Google → argostranslate → original query); in practice falls through to the original query, see limitations
+- Tamil translation via Helsinki-NLP `opus-mt-dra-en` / `opus-mt-en-dra` (offline, no MSVC needed): en→ta output and ta→en retrieval; fallback chain Helsinki → Google → argostranslate → original query
+- Scheme names preserved in English in Tamil responses, with numbered-list and markdown preservation
 - `eval_rag.py` `--ids` and `--pause` flags (`--pause` default 3s between LLM calls)
 
 ---
@@ -259,8 +260,8 @@ Evaluation harness: `chatbot/evaluation/`. Full detail in `EVAL_REPORT.md`. Late
 
 ## Known Limitations
 
-- **Tamil output translation:** pending IndicTrans2 (needs MSVC Build Tools). argostranslate has no en↔ta model, so Tamil answers are returned in English.
-- **Tamil specific scheme-name retrieval:** fails for Tamil-script scheme names (eval ids 5, 6, 18, 26) because multilingual-e5-small does not embed them accurately; broad category queries (farmers, women's schemes) work. Google translation of the query is rate-limited/blocked from this machine and argostranslate has no Tamil package, so the fallback chain searches with the original query.
+- **Tamil translation quality:** Helsinki `opus-mt-en-dra` output is readable but often garbled for descriptive text (repetition, lost figures, mangled place names). NLLB-200 or IndicTrans2 would be a quality upgrade, not a blocker.
+- **Tamil specific scheme-name retrieval:** fails for Tamil-script scheme names (eval ids 5, 6, 18, 26) because multilingual-e5-small does not embed them accurately; broad category queries (farmers, women's schemes) work. Queries are now translated ta→en with Helsinki before retrieval, but it garbles proper nouns (e.g. "Airavata", "Amma Two Wheeler"), so these queries are expected to still miss; not re-evaluated since the change.
 - **MyScheme sync:** needs API key registration OR Google unblock for the Playwright scraper.
 - **Groq rate limits:** the free tier causes fallback to Ollama on heavy eval runs (11 queries in the latest run), inflating response time and mixing models in eval answers.
 - Eligibility engine evaluates merged multi-clause condition strings as one unit (Airavata Scheme case fails).
@@ -270,11 +271,10 @@ Evaluation harness: `chatbot/evaluation/`. Full detail in `EVAL_REPORT.md`. Late
 
 ## Remaining Work (in order)
 
-1. Install MSVC Build Tools → IndicTrans2 for Tamil translation (query and output)
-2. Process remaining 1,578 PDFs (`python backend/extraction/batch_run_200.py`, 200 per batch, ~70 min each, idempotent)
-3. Re-ingest the full dataset into MongoDB + ChromaDB
-4. Final evaluation on the complete dataset
-5. MyScheme API key, or unblock Google, for the sync pipeline
+1. Process remaining 1,578 PDFs (`python backend/extraction/batch_run_200.py`, 200 per batch, ~70 min each, idempotent)
+2. Re-ingest the full dataset into MongoDB + ChromaDB
+3. Final evaluation on the complete dataset
+4. MyScheme API key, or unblock Google, for the sync pipeline
 
 ### To Resume in a New Claude Session
 Paste this at the start:
@@ -310,7 +310,7 @@ Then tell me what you want to do next.
 | Document Extraction | Instructor + Pydantic + Groq |
 | Backend | FastAPI + WebSocket |
 | Query Router | Deterministic Python (5 intents) |
-| Translation | `langdetect` for detection, `googletrans` for output translation |
+| Translation | `langdetect` for detection; Helsinki-NLP Marian models for Tamil, argostranslate for Hindi |
 | Frontend | React + Tailwind CSS |
 | Evaluation | 50 curated test queries, Ragas metrics |
 

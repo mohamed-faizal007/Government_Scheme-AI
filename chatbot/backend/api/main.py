@@ -265,7 +265,12 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
     confidence = "medium" if any_unverifiable else "high"
 
     return {
-        "answer": translate(answer_text, source_lang="en", target_lang=language),
+        "answer": translate(
+            answer_text,
+            source_lang="en",
+            target_lang=language,
+            schemes=[src.get("scheme_name", "") for src in sources],
+        ),
         "sources": sources,
         "confidence": confidence,
         "eligibility_results": eligibility_results,

@@ -133,7 +133,69 @@ def translate_ta_to_en(text: str) -> str | None:
     return _helsinki_translate(text, "ta-en")
 
 
-def translate(text: str, source_lang: str, target_lang: str) -> str:
+def protect_scheme_names(text: str, schemes: list) -> tuple:
+    """Replace scheme names with placeholders before translation."""
+    placeholders = {}
+    protected_text = text
+    for i, name in enumerate(schemes):
+        placeholder = f"__SCHEME_{i}__"
+        placeholders[placeholder] = name
+        protected_text = protected_text.replace(name, placeholder)
+    return protected_text, placeholders
+
+
+def restore_scheme_names(text: str, placeholders: dict) -> str:
+    """Restore original scheme names after translation."""
+    for placeholder, name in placeholders.items():
+        text = text.replace(placeholder, name)
+    return text
+
+
+_HAS_LETTER = re.compile(r"[^\W\d_]")
+_LEAD = re.compile(r"^[\s\-–—]*(?:\d+\.\s+)?[\s\-–—]*")
+_TRAIL = re.compile(r"(?:\s+\d+\.)?\s*$")
+
+
+def _translate_segment(segment: str, source_lang: str, target_lang: str) -> str:
+    """Translate text between scheme names, line by line.
+
+    Leading list markers ("3. ", dashes) and trailing inline markers (" 3.") are
+    lifted out and re-inserted because the model drops or garbles them.
+    """
+    out_lines = []
+    for line in segment.split("\n"):
+        if not _HAS_LETTER.search(line):
+            out_lines.append(line)
+            continue
+        lead = _LEAD.match(line).group(0)
+        rest = line[len(lead):]
+        trail = _TRAIL.search(rest).group(0)
+        body = rest[: len(rest) - len(trail)]
+        if _HAS_LETTER.search(body):
+            body = translate(body, source_lang, target_lang)
+        out_lines.append(lead + body + trail)
+    return "\n".join(out_lines)
+
+
+def _translate_around_names(text: str, source_lang: str, target_lang: str, schemes: list) -> str:
+    """Translate `text` while keeping `schemes` names (and markdown `**`) verbatim.
+
+    Marian models mangle placeholder tokens (e.g. "__SCHEME_0__" comes back as
+    "_SCHEME_ 1_ or ui"), so names are never sent through the model: the text is
+    split around them and only the segments between names are translated.
+    """
+    names = sorted({n for n in schemes if n}, key=len, reverse=True)
+    if not names:
+        return translate(text, source_lang, target_lang)
+    pattern = "(" + "|".join([re.escape(n) for n in names] + [r"\*\*"]) + ")"
+    parts = re.split(pattern, text)
+    keep = set(names) | {"**"}
+    return "".join(
+        part if part in keep else _translate_segment(part, source_lang, target_lang) for part in parts
+    )
+
+
+def translate(text: str, source_lang: str, target_lang: str, schemes: list = None) -> str:
     """Translate `text` from `source_lang` to `target_lang`.
 
     Returns `text` unchanged if source and target match, or if translation
@@ -145,6 +207,9 @@ def translate(text: str, source_lang: str, target_lang: str) -> str:
 
     if not text or not text.strip():
         return text
+
+    if schemes and target_lang == "ta":
+        return _translate_around_names(text, source_lang, target_lang, schemes)
 
     if (source_lang, target_lang) in (("en", "ta"), ("ta", "en")):
         helsinki = _helsinki_translate(text, f"{source_lang}-{target_lang}")

@@ -18,7 +18,8 @@ def answer(query: str, language: str = "en", system_prompt_suffix: str = "") -> 
         }
 
     result = generate(query, retrieved_schemes, language=language, system_prompt_suffix=system_prompt_suffix)
-    result["answer"] = translate(result["answer"], source_lang="en", target_lang=language)
+    source_names = [src.get("scheme_name", "") for src in result.get("sources", [])]
+    result["answer"] = translate(result["answer"], source_lang="en", target_lang=language, schemes=source_names)
     return result
 
 

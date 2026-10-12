@@ -13,6 +13,7 @@ from ..config import settings
 from ..database.load_chroma import STATE_NAMES
 from ..database.mongo_client import get_schemes_collection
 from ..embeddings.multilingual_e5 import MultilingualE5Embedder
+from ..translation.translator import translate_ta_to_en
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -93,13 +94,21 @@ def _argos_ta_to_en(query: str) -> str | None:
 def translate_for_retrieval(query: str) -> str:
     """Translate Tamil queries to English for embedding search only.
 
-    Fallback chain: Google (deep_translator) -> argostranslate -> original query.
+    Fallback chain: Helsinki (local) -> Google (deep_translator) -> argostranslate -> original query.
     """
     try:
         if detect(query) != "ta":
             return query
     except Exception:
         return query
+
+    try:
+        translated = translate_ta_to_en(query)
+        if translated and translated != query:
+            logger.info("Tamil query translated via Helsinki: %r -> %r", query, translated)
+            return translated
+    except Exception as exc:
+        logger.debug("Helsinki translation failed: %s", exc)
 
     try:
         translated = GoogleTranslator(source="ta", target="en").translate(query)

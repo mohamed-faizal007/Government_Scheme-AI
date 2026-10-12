@@ -37,6 +37,10 @@ Remaining failure: "SC category, Karnataka, age 25 -> eligible for Airavata Sche
 
 ---
 
+## Known Limitations
+
+- Tamil specific-scheme name queries: retrieval fails because multilingual-e5-small does not embed specific Tamil scheme names accurately. Broad category queries (schemes for farmers, women's schemes) work correctly. Full fix requires IndicTrans2 (pending MSVC Build Tools installation).
+
 # Previous run (2026-09-15, historical)
 
 Dataset state: 488/2,066 scheme PDFs processed and loaded (MongoDB: 488 docs, ChromaDB: 1,952 chunks).

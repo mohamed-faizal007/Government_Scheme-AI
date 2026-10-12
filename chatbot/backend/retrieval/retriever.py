@@ -6,6 +6,8 @@ import re
 import sys
 
 import chromadb
+from deep_translator import GoogleTranslator
+from langdetect import detect
 
 from ..config import settings
 from ..database.load_chroma import STATE_NAMES
@@ -76,7 +78,52 @@ def extract_filters(query: str) -> dict:
     return filters
 
 
+def _argos_ta_to_en(query: str) -> str | None:
+    from argostranslate import translate as argtranslate
+
+    installed_languages = argtranslate.get_installed_languages()
+    from_lang = next((l for l in installed_languages if l.code == "ta"), None)
+    to_lang = next((l for l in installed_languages if l.code == "en"), None)
+    if not (from_lang and to_lang):
+        logger.debug("argostranslate ta->en package not installed")
+        return None
+    return from_lang.get_translation(to_lang).translate(query)
+
+
+def translate_for_retrieval(query: str) -> str:
+    """Translate Tamil queries to English for embedding search only.
+
+    Fallback chain: Google (deep_translator) -> argostranslate -> original query.
+    """
+    try:
+        if detect(query) != "ta":
+            return query
+    except Exception:
+        return query
+
+    try:
+        translated = GoogleTranslator(source="ta", target="en").translate(query)
+        if translated and translated != query:
+            logger.info("Tamil query translated via Google: %r -> %r", query, translated)
+            return translated
+    except Exception as exc:
+        logger.debug("Google translation failed: %s", exc)
+
+    try:
+        translated = _argos_ta_to_en(query)
+        if translated and translated != query:
+            logger.info("Tamil query translated via argostranslate: %r -> %r", query, translated)
+            return translated
+    except Exception as exc:
+        logger.debug("argostranslate fallback failed: %s", exc)
+
+    logger.warning("Tamil translation unavailable, searching with original query")
+    return query
+
+
 def retrieve(query: str, filters: dict = None, top_k: int = 5) -> list[dict]:
+    # Translated text is used for ChromaDB search only; callers keep the original for the LLM.
+    query = translate_for_retrieval(query)
     extracted = extract_filters(query)
     if filters:
         extracted.update({k: v for k, v in filters.items() if v})

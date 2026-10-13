@@ -1,6 +1,7 @@
 """FastAPI backend — chat, profile, health, and WebSocket endpoints.
 Run: uvicorn chatbot.backend.api.main:app --reload --port 8000  (from repo root)
 """
+import asyncio
 import hmac
 import logging
 import tempfile
@@ -10,6 +11,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal, Optional
 
 from fastapi import FastAPI, File, Form, Header, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketState
@@ -86,6 +88,8 @@ DOCUMENT_UPLOAD_PROMPT = (
 )
 
 _sessions: dict[str, dict] = {}
+# Serialises WebSocket processing per session_id now that _process_message runs in a worker thread.
+_ws_session_locks: dict[str, asyncio.Lock] = {}
 
 
 def _new_session() -> dict:
@@ -537,7 +541,11 @@ async def websocket_chat(websocket: WebSocket):
             language = data.get("language")
 
             try:
-                result = _process_message(message, session_id, language)
+                if session_id:
+                    async with _ws_session_locks.setdefault(session_id, asyncio.Lock()):
+                        result = await run_in_threadpool(_process_message, message, session_id, language)
+                else:
+                    result = await run_in_threadpool(_process_message, message, session_id, language)
             except HTTPException as exc:
                 await websocket.send_json({"error": exc.detail})
                 continue

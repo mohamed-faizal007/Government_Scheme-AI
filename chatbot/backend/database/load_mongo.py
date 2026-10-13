@@ -10,6 +10,7 @@ from pathlib import Path
 from pymongo import ASCENDING
 
 from .mongo_client import get_schemes_collection
+from .scheme_name_utils import clean_scheme_name
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
 logger = logging.getLogger(__name__)
@@ -55,6 +56,8 @@ def run() -> None:
                 continue
 
             doc = dict(data)
+            if scheme_name:
+                doc.setdefault("metadata", {})["scheme_name"] = clean_scheme_name(scheme_name)
             doc["source_file"] = source_file
             doc["ingested_at"] = datetime.now(timezone.utc)
             doc["embedding_status"] = "pending"

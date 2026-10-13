@@ -1,11 +1,26 @@
 # Phase 10 — Evaluation Report
 
 Run date: 2026-10-10 (re-run after intent-classifier and engine fixes; supersedes the 2026-09-15 run)
-LLM: Groq `openai/gpt-oss-20b`. Embeddings: `multilingual-e5-small`.
+LLM: Groq `openai/gpt-oss-20b` (primary) with `openai/gpt-oss-120b` as the 429 fallback (added 2026-10-13). Embeddings: `multilingual-e5-small`.
 
 Raw outputs: `eval_rag_results.json`, `eval_eligibility_results.json`.
 
-## Current results (2026-10-10)
+## Update 2026-10-13 (after citation guard, fallback chain, URL protection)
+
+Models behind these numbers: **`openai/gpt-oss-20b` primary, `openai/gpt-oss-120b` fallback** on Groq 429. No answer in these runs came from Ollama, except the one failure noted below.
+
+| Metric | 2026-10-10 | 2026-10-13 |
+|---|---|---|
+| Out-of-scope decline rate (ids 31-40) | 80% (8/10) | **100% (10/10)** |
+| Eligibility accuracy | 95% (19/20) | **95% (19/20)**, unchanged |
+
+- **Decline rate is 10/10 after the citation guard.** The generator now declines whenever an answer names none of the retrieved scheme names, at any reported confidence (the old guard only fired on `high`; the "Paris" answer was `medium`). Only queries 35 and 38 reach the generator; the other eight are declined by the intent router. An interim run printed 90% because the Tamil decline text (query 38) was not recognised by `is_declined` after translation; the URL-protection fix below preserves `myscheme.gov.in` in translated declines, so the eval now prints 100%.
+- **Score threshold rejected.** Top retrieval scores: out-of-scope 0.551-0.668, English in-scope 0.714-0.835, Hindi/Tamil in-scope 0.588-0.702. Non-English in-scope queries overlap the out-of-scope range, so no similarity cutoff was used.
+- **Groq fallback chain.** On a 429 the provider switches immediately to `gpt-oss-120b` (separate token bucket) instead of sleeping; the Groq SDK's own 30s+ retry is disabled so the switch is instant. Order: 20b -> 120b -> backoff rounds -> Ollama. Retrieval is now `top_k=4` (was 5) to cut tokens per request; answers stayed `high` confidence with cited sources.
+- **Back-to-back test (4 queries, no pause):** farmers 8.7s (20b), 25% subsidy docs 4.3s (120b after one 429), students 3.9s (20b), Hindi farmers 137s and failed. Earlier single-model times were 34.9s, 10.7s and 54.1s for the first three. The Hindi failure is the token budget: four heavy queries in under a minute exceed two 8,000 tokens/min buckets, backoff (2s+4s) is too short to refill, and the Ollama fallback then timed out (the then-configured `qwen2.5:3b` was not installed; `.env` now points to the installed `gemma3:4b`). The same Hindi query alone took 21s with no 429s.
+- **Translated declines.** `myscheme.gov.in` is now kept out of translation, so the Tamil/Hindi decline text keeps a correct URL. Tamil wording is still rough (e.g. "MyScheme" becomes "MSchem").
+
+## Results of the 2026-10-10 run (historical; the decline-rate leak below is fixed, see above)
 
 Setup: Groq `openai/gpt-oss-20b` primary; 11 of the LLM-bound queries exhausted Groq's rate-limit retries (45 HTTP 429 responses logged) and were answered by the Ollama fallback instead, so some answers come from a different model. This also inflates response time. Embeddings: `multilingual-e5-small`. Data: 488 schemes (MongoDB), 1,952 chunks (ChromaDB). Fixes since the 09-15 run: native Hindi/Tamil intent classification, empty-number guards in the income parsing (classifier and rules engine).
 
@@ -21,7 +36,7 @@ Setup: Groq `openai/gpt-oss-20b` primary; 11 of the LLM-bound queries exhausted 
 | Pipeline errors | 0 | **0** (query 12 float error fixed) |
 
 Findings:
-- **Decline rate dropped to 80% — a real leak, not noise.** Query 35 ("What is the capital of France?") is routed to `scheme_search` by the `what is` pattern and, now that retrieval works, the LLM answered "The capital of France is Paris." Query 38 (Tamil cricket question) is also routed to `scheme_search` and got a rambling non-decline answer. The 09-15 grounding-check safety net no longer catches these; the generator needs a stricter "answer only from retrieved context" guard.
+- **Decline rate dropped to 80% — a real leak, not noise (fixed 2026-10-13, now 10/10).** Query 35 ("What is the capital of France?") is routed to `scheme_search` by the `what is` pattern and, now that retrieval works, the LLM answered "The capital of France is Paris." Query 38 (Tamil cricket question) is also routed to `scheme_search` and got a rambling non-decline answer. The 09-15 grounding-check safety net no longer catches these; the generator needs a stricter "answer only from retrieved context" guard.
 - **Tamil scheme queries still fail** (ids 5, 6, 18, 26 return the fallback). The classifier fix routes them to the right intent, but retrieval/generation for Tamil text does not find the scheme.
 - **Retrieval spot-check misses** are unchanged: q5 and q6 (Tamil), q9 (Hindi PM-Kisan, scheme not in the 488-doc dataset).
 - Response time is dominated by Groq rate limiting; a 3s pause and `--ids` flag were added to `eval_rag.py` for future runs.
@@ -39,6 +54,7 @@ Remaining failure: "SC category, Karnataka, age 25 -> eligible for Airavata Sche
 
 ## Known Limitations
 
+- **Groq free tier: 8,000 tokens/min per model** (1,000 requests/day). A RAG request uses roughly 4-5k tokens, so about two queries per minute per model. The 20b -> 120b fallback doubles this; sustained bursts still fail over to Ollama, which is currently misconfigured (see above).
 - Tamil specific-scheme name queries: retrieval fails because multilingual-e5-small does not embed specific Tamil scheme names accurately. Broad category queries (schemes for farmers, women's schemes) work correctly. Full fix requires IndicTrans2 (pending MSVC Build Tools installation).
 
 # Previous run (2026-09-15, historical)

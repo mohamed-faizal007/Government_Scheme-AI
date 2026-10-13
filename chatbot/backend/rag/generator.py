@@ -134,15 +134,16 @@ def generate(
 
     answer, confidence = _parse_response(raw)
 
-    # Grounding check: a confident answer that names none of the retrieved schemes
-    # was produced from the LLM's own knowledge (e.g. "Paris"), not from context.
-    lowered_answer = answer.lower()
-    if confidence == "high" and not any(
-        hit["scheme_name"].strip().lower() in lowered_answer
+    # Grounding check: an answer that names none of the retrieved schemes was produced
+    # from the LLM's own knowledge (e.g. "Paris"), not from context. This applies at any
+    # reported confidence — the LLM labelled "Paris" as "medium" in the 2026-10-10 eval.
+    normalized_answer = _normalize_for_match(answer)
+    if not any(
+        _normalize_for_match(hit["scheme_name"]) in normalized_answer
         for hit in retrieved_schemes
         if hit.get("scheme_name", "").strip()
     ):
-        logger.warning("generator: high-confidence answer names no retrieved scheme, declining")
+        logger.warning("generator: answer names no retrieved scheme (confidence=%s), declining", confidence)
         answer = DECLINE_MESSAGE
 
     declined = DECLINE_MESSAGE.strip().lower() in answer.strip().lower()
@@ -170,6 +171,13 @@ def generate(
         "confidence": confidence,
         "language": language,
     }
+
+
+def _normalize_for_match(text: str) -> str:
+    # LLMs emit non-breaking/typographic hyphens and odd spacing that defeat substring matching.
+    for dash in ("‐", "‑", "‒", "–", "—"):
+        text = text.replace(dash, "-")
+    return " ".join(text.lower().split())
 
 
 def _parse_response(raw: str) -> tuple[str, str]:

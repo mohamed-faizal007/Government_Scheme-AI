@@ -7,7 +7,7 @@ from .generator import DECLINE_MESSAGE, generate
 
 
 def answer(query: str, language: str = "en", system_prompt_suffix: str = "") -> dict:
-    retrieved_schemes = retrieve(query, top_k=5)
+    retrieved_schemes = retrieve(query, top_k=4)
 
     if not retrieved_schemes:
         return {

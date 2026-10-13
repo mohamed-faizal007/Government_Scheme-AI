@@ -18,6 +18,7 @@ DetectorFactory.seed = 0
 
 SUPPORTED_LANGUAGES = {"en", "ta", "hi"}
 CONFIDENCE_THRESHOLD = 0.7
+PORTAL_URL = "myscheme.gov.in"
 
 
 def detect_language(text: str) -> str:
@@ -208,8 +209,13 @@ def translate(text: str, source_lang: str, target_lang: str, schemes: list = Non
     if not text or not text.strip():
         return text
 
-    if schemes and target_lang == "ta":
-        return _translate_around_names(text, source_lang, target_lang, schemes)
+    # The portal URL in decline messages gets mangled by Marian ("Mscheme.me.gov."),
+    # so it is kept verbatim the same way scheme names are.
+    protected = list(schemes) if schemes and target_lang == "ta" else []
+    if PORTAL_URL in text:
+        protected.append(PORTAL_URL)
+    if protected:
+        return _translate_around_names(text, source_lang, target_lang, protected)
 
     if (source_lang, target_lang) in (("en", "ta"), ("ta", "en")):
         helsinki = _helsinki_translate(text, f"{source_lang}-{target_lang}")

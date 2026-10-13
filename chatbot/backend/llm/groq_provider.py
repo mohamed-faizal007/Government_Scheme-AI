@@ -13,13 +13,23 @@ MAX_RETRIES = 3
 
 
 class GroqProvider(BaseLLM):
-    """Groq-backed LLM. Falls back to Ollama on invalid responses or network failure —
-    never on rate limits, which are retried against Groq itself first."""
+    """Groq-backed LLM. On a 429 it switches immediately to the fallback model (which has
+    its own token bucket), then retries both with backoff, and only then falls back to
+    Ollama. Other failures fall back to Ollama directly."""
 
-    def __init__(self, model: str | None = None, fallback: BaseLLM | None = None):
+    def __init__(self, model: str | None = None, fallback: BaseLLM | None = None, fallback_model: str | None = None):
         self.model = model or settings.groq_model
-        self.client = Groq(api_key=settings.groq_api_key)
+        self.fallback_model = fallback_model or settings.groq_fallback_model
+        # max_retries=0: the SDK's own 429 retry sleeps 30s+ before we ever see the error,
+        # which defeats switching to the fallback model.
+        self.client = Groq(api_key=settings.groq_api_key, max_retries=0)
         self.fallback = fallback or OllamaProvider()
+
+    def _models(self) -> list[str]:
+        models = [self.model]
+        if self.fallback_model and self.fallback_model != self.model:
+            models.append(self.fallback_model)
+        return models
 
     def generate(self, prompt: str, system: str = "") -> str:
         messages = []
@@ -27,39 +37,39 @@ class GroqProvider(BaseLLM):
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": prompt})
 
-        attempt = 0
-        while attempt < MAX_RETRIES:
-            attempt += 1
-            try:
-                completion = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                )
-                content = completion.choices[0].message.content
-                if not content:
-                    logger.warning("llm_provider=groq invalid_response, falling back to ollama")
-                    return self._fallback(prompt, system)
-                logger.info("llm_provider=groq model=%s", self.model)
-                return content
-            except APIStatusError as exc:
-                if exc.status_code == 413:
-                    logger.warning("llm_provider=groq context_too_large")
-                    raise ContextTooLargeError(str(exc)) from exc
-                if exc.status_code == 429:
-                    wait = 2 ** attempt
-                    logger.warning("llm_provider=groq rate_limited retry_in=%ss attempt=%d", wait, attempt)
-                    time.sleep(wait)
-                    continue
-                if exc.status_code == 503:
-                    logger.warning("llm_provider=groq temporary_failure retrying_once")
-                    if attempt == 1:
+        models = self._models()
+        # Rounds: each round tries every model once; backoff only happens between rounds.
+        for round_no in range(1, MAX_RETRIES + 1):
+            rate_limited_all = True
+            for model in models:
+                try:
+                    completion = self.client.chat.completions.create(model=model, messages=messages)
+                    content = completion.choices[0].message.content
+                    if not content:
+                        logger.warning("llm_provider=groq model=%s invalid_response, falling back to ollama", model)
+                        return self._fallback(prompt, system)
+                    logger.info("llm_provider=groq model=%s", model)
+                    return content
+                except APIStatusError as exc:
+                    if exc.status_code == 413:
+                        logger.warning("llm_provider=groq model=%s context_too_large", model)
+                        raise ContextTooLargeError(str(exc)) from exc
+                    if exc.status_code == 429:
+                        logger.warning("llm_provider=groq model=%s rate_limited round=%d", model, round_no)
                         continue
+                    rate_limited_all = False
+                    if exc.status_code == 503 and round_no == 1:
+                        logger.warning("llm_provider=groq model=%s temporary_failure retrying_once", model)
+                        break
+                    logger.warning("llm_provider=groq model=%s status_error=%s falling back to ollama", model, exc.status_code)
                     return self._fallback(prompt, system)
-                logger.warning("llm_provider=groq status_error=%s falling back to ollama", exc.status_code)
-                return self._fallback(prompt, system)
-            except APIConnectionError:
-                logger.warning("llm_provider=groq network_failure falling back to ollama")
-                return self._fallback(prompt, system)
+                except APIConnectionError:
+                    logger.warning("llm_provider=groq network_failure falling back to ollama")
+                    return self._fallback(prompt, system)
+            if rate_limited_all and round_no < MAX_RETRIES:
+                wait = 2 ** round_no
+                logger.warning("llm_provider=groq all_models_rate_limited retry_in=%ss round=%d", wait, round_no)
+                time.sleep(wait)
 
         logger.warning("llm_provider=groq rate_limit_exhausted falling back to ollama")
         return self._fallback(prompt, system)

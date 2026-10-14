@@ -55,7 +55,7 @@ Remaining failure: "SC category, Karnataka, age 25 -> eligible for Airavata Sche
 ## Known Limitations
 
 - **Groq free tier: 8,000 tokens/min per model** (1,000 requests/day). A RAG request uses roughly 4-5k tokens, so about two queries per minute per model. The 20b -> 120b fallback doubles this; sustained bursts still fail over to Ollama, which is currently misconfigured (see above).
-- Tamil specific-scheme name queries: retrieval fails because multilingual-e5-small does not embed specific Tamil scheme names accurately. Broad category queries (schemes for farmers, women's schemes) work correctly. Full fix requires IndicTrans2 (pending MSVC Build Tools installation).
+- Tamil specific-scheme name queries: retrieval fails because multilingual-e5-small does not embed specific Tamil scheme names accurately. Broad category queries (schemes for farmers, women's schemes) work correctly. Tamil uses Helsinki-NLP opus-mt-dra-en / opus-mt-en-dra; specific-scheme-name queries still miss because the model garbles proper nouns; IndicTrans2 or NLLB-200 would be an upgrade, not a blocker.
 
 # Previous run (2026-09-15, historical)
 

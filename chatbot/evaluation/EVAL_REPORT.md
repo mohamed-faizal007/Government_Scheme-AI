@@ -1,5 +1,102 @@
 # Phase 10 — Evaluation Report
 
+## What each change did (summary table)
+
+| Metric | 1. 488 schemes (2026-10-10) | 2. 2,066, before token budget | 3. + token budget (14-id subset only) | 4. + cleanup (descriptions, 73 names, router): regression | 5. + skip content-free description chunks | 6. + citation-guard fix + tighter Romanized-Hindi patterns (current) |
+|---|---|---|---|---|---|---|
+| Out-of-scope declined | 80% (8/10) | 100% (10/10), 2 only by request failure | 10/10; q35, q38 by the guard | 100% (10/10): 8 router, 2 guard | 100% (10/10): 8 router, 2 guard | **100% (10/10): 8 router (31-34, 36, 37, 39, 40), 2 citation guard (35, 38)** |
+| Source citation rate | 30% (15/50) | 26% (13/50) | 14.3% of the 14 ids (not comparable) | 16% (8/50) | 26% (13/50) | **28% (14/50)** |
+| Retrieval spot-check (top 5) | 70% (7/10) | 70% (7/10) | not run | 60% (6/10), q1 misses | 70% (7/10) | **70% (7/10)** |
+| Average response time | 28.9s | 11.2s | 1.7s (14 ids) | 2.1s | 2.5s | **3.7s** |
+| Groq 413 failures | n/a | 5 | 0 | 0 | 0 | **0** |
+| Answers per model (log selections) | 20b + Ollama (11 queries via Ollama) | 20b 9, 120b 6, Ollama 4 | 20b only | 20b 16, 120b 7, Ollama 0 | 20b 19, 120b 4, Ollama 0 | **20b 21, 120b 3, Ollama 0** |
+| Eligibility accuracy | 95% (19/20) | 95% (19/20) | n/a | 95% (19/20) | 95% (19/20) | **95% (19/20)** |
+| MongoDB docs / Chroma chunks | 488 / 1,952 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 7,528 | **2,066 / 7,528** |
+
+Column 3 is a subset because only the 14 affected ids were re-run after the token budget. Raw results: `eval_rag_results.json` (column 6), `eval_rag_results_before_guard_fix.json` (column 5), `eval_rag_results_after_cleanup.json` (column 4), `eval_rag_results_subset.json` (column 3), `eval_rag_results_before_token_budget.json` (column 2); column 1 is in git history. Run-to-run differences of a query or two are model wording variance (the same query was answered in one run and declined in the next, e.g. q3, q22).
+
+What each change did:
+- **Token budget (per-scheme 1,500-character cap, 5,500-token prompt cap, 4 -> 3 -> 2 scheme retry on 413):** removed all 413 failures (requests fell from 8,917-13,741 tokens to about 1,650-1,775) and cut the average time from 11.2s to about 2s because the slow Ollama fallbacks disappeared. Cost: the cap drops most of the facts for long schemes (Assam Arogya Nidhi Scheme: 6,949 characters of benefits/application text, 1,541 reach the prompt; amounts mentioned 11 -> 3), so some "how much / what documents" questions get a low-confidence decline (q22, q28).
+- **Cleanup (pop-up text stripped from all 2,066 descriptions, 73 file-name scheme names recovered from the source PDFs):** made retrieval worse. 732 schemes ended up with an empty description, so their description chunk was just `passage: <name>.` and outranked real matches (q1: the real Atal Pension Yojana chunk was at rank #22, 0.762, behind five name-only chunks).
+- **Skipping content-free description chunks (732 empty + 4 under 40 characters, 736 chunks deleted):** restored the pre-cleanup level (citation 16% -> 26%, spot-check 6/10 -> 7/10).
+- **Citation-guard fix (`names_scheme()` in `rag/generator.py`) and Romanized-Hindi patterns (column 6).** The guard now compares names after lower-casing, unifying Unicode hyphens/quotes, collapsing spaces and stripping edge punctuation, and requires at least 4 characters of name; stored names are unchanged (`chatbot/backend/test_citation_guard.py`, 11 cases). `kya hai`, `batao`, `bataiye`, `ke baare mein` only count together with a scheme word (yojana, scheme, labh, subsidy, pension, ...); "aaj mausam kya hai" and "mujhe kuch batao" stay out of scope, "kisan yojana ke baare mein batao" routes to scheme search. Net effect: q10 and q30 (`Abhayakiranam Scheme-`) answered, citation 26% -> 28%.
+
+The 8 queries that declined after the cleanup (ids 1, 4, 10, 22, 24, 25, 28, 30), and q3, now:
+
+| id | Status in column 6 | Why |
+|---|---|---|
+| 1, 10, 25, 30 | answered (4 sources) | fixed by the chunk skip and the guard fix |
+| 4 (Hindi, Bina Mulya) | declined | the model itself returns "no reliable information" (confidence low) although the scheme is retrieved |
+| 22 (benefit amount, Assam Arogya Nidhi) | declined | low confidence; the 1,500-character cap removes most of the amounts (11 -> 3 mentions) |
+| 28 (claim, Aam Aadmi Bima) | declined | low confidence; claim details sit past the cap (first mention at character 2,292 of 3,375) |
+| 24 (documents, Amma Two Wheeler) | declined | guard, high confidence: the model wrote "Amma Two Wheeler Scheme" without "for Working Women"; it passes or fails from run to run on the wording |
+| 3 (Romanized Hindi) | declined this run, answered earlier | guard, high confidence: "Assam Arogya Nidhi (AAN) Scheme" does not contain the stored name; passes when the model writes "Assam Arogya Nidhi Scheme" |
+
+Also new: q6 (Tamil, Amma Two Wheeler) now has 4 sources but the answer is about the wrong scheme (Snehayanam Scheme For Mothers Of Persons With Special Needs); the guard passes it because a retrieved scheme is named. q44 ("Atal Pention Yojna") and q49 ("योजना") now get answers listing schemes.
+
+Still open:
+- **The guard's exact-name match is brittle against model abbreviations** ("Amma Two Wheeler Scheme", "(AAN)"); matching on the leading words or on token overlap would remove these false declines. Not changed.
+- **The 1,500-character cap is conservative**: the worst-case request is about 2.9k estimated tokens against a 5.5k budget; raising the cap to about 3,000 characters would keep the facts for long schemes while staying under the budget. Not changed.
+- Tamil specific-scheme queries (q5, q6, q18, q26) still miss; recovering the 73 names did not help them, and q6 now answers with a wrong scheme.
+- 13 truncated scheme names remain (`Dr. B.`, `E.`, `'`, `H.`, `J.`, `Meit`, `MMKY-`, ...), recoverable from the source PDFs like the 73; 18 descriptions of 40-80 characters are truncated sentences.
+- 67 benefits/eligibility/application chunks are content-free (`passage: <name> benefits: ` alone); only description chunks were skipped.
+- The pop-up sentence remains inside 84 application/eligibility/benefits chunks.
+
+Fixed in this round: the citation guard rejecting correct answers for names with stray trailing punctuation (e.g. `Abhayakiranam Scheme-`), and Romanized-Hindi `kya hai` / `batao` routing non-scheme questions to the generator.
+
+## Run 2026-10-21 — full corpus (2,066 schemes)
+
+Data: 2,066 schemes in MongoDB, 8,264 chunks in ChromaDB (extraction 2,066/2,066, 0 failed, 0 schema-invalid). Embeddings: `multilingual-e5-small`.
+LLM: Groq `openai/gpt-oss-20b` primary, `openai/gpt-oss-120b` fallback, Ollama `gemma3:4b` last resort. The free tier (8,000 tokens/min per model) was rate-limited throughout: the run log shows 21 rate-limit events on 20b, 15 on 120b, 10 rounds with both exhausted, 5 falls to Ollama and 5 `context_too_large` (413) events. By the log's model-selection lines, 20b was chosen 9 times, 120b 6 and Ollama 4 (counts of selections, not of answers).
+
+Command: `python -m chatbot.evaluation.eval_rag --pause 3` (all 50 queries) and `python chatbot/evaluation/eval_eligibility.py`.
+
+**These are the "before token budget" numbers.** The token-budget change and the subset re-run are in the next section; this table is kept unchanged.
+
+| Metric | 2026-10-21, before token budget (2,066 schemes) | 2026-10-10 (488 schemes, history) | 2026-10-13 (488 schemes, history) |
+|---|---|---|---|
+| Out-of-scope decline rate | **100% (10/10)** | 80% (8/10) | 100% (10/10), ids 31-40 re-run |
+| Source citation rate | **26% (13/50)** | 30% (15/50) | not re-run |
+| Average response time | **11.2s** | 28.9s | not re-run |
+| Retrieval spot-check (top 5) | **70% (7/10)** | 70% (7/10) | not re-run |
+| Eligibility accuracy | **95% (19/20)** | 95% (19/20) | 95% (19/20) |
+
+Findings:
+- **The 100% decline rate is partly an artifact.** Queries 35 ("capital of France") and 38 (Tamil cricket) reached the generator and were declined only because Groq returned 413 and all fallbacks failed ("LLM generation failed after all fallbacks"), not because the citation guard fired. The other eight out-of-scope queries were declined by the intent router.
+- **Oversized prompts on the full corpus.** Five requests exceeded the 8,000 tokens/min cap by themselves (8,917 and 13,741 tokens requested in two logged examples). A 413 cannot be fixed by retrying or switching Groq model. Queries 8, 21, 35, 38 and 49 returned a failure/"no reliable information" answer with 0 sources. Retrieved context needs a token budget.
+- **Citation rate is 26%** (13/50), down from 30%. Most of the 50 queries never reach retrieval (intent router short-circuits), and the 413 failures above and the Ollama timeouts remove several more. Treat as a floor, not a clean measurement.
+- **Junk scheme names in the new data.** 73 of 2,066 schemes have a `scheme_name` that is the file name (e.g. `affdf copy`, `faaadp copy`). For the Tamil queries q5 and q6 the top-5 retrieval is made of these. Spot-check misses are the same three as before (q5, q6, and q9, whose expected scheme is not in the dataset).
+- **Id 3 is a router gap, not a regression:** "Assam Arogya Nidhi Scheme ke baare mein bataiye" (Romanized Hindi) matches no pattern in the keyword classifier, so it is `out_of_scope` with 0 sources. The 2026-10-10 run had the same result.
+- **Eligibility** is unchanged at 95% (19/20); the single failure is still the merged multi-clause Airavata condition (SC + Karnataka + age 25), see the Eligibility section below.
+- **Speed:** average 11.2s versus 28.9s, because far fewer calls waited on Ollama (4 selections versus 11 queries before). The slowest queries were still 75-130s (q6, q9, q23, q26, q30) when they fell to Ollama.
+
+### After token budget (2026-10-21, subset re-run of the 14 affected ids)
+
+Change (`rag/generator.py`, `llm/groq_provider.py`): each retrieved scheme's text is capped at 1,500 characters (description 500, benefits 400, eligibility 350, application 250 guaranteed, leftovers flow to later sections and the FAQ), the whole prompt is capped at about 5,500 estimated tokens, and a 413 (or a 429 that says "Request too large") retries with fewer schemes (all retrieved -> 3 -> 2) before anything falls to Ollama. Retrieval returns 4, so the ladder here is 4 -> 3 -> 2. A fake-LLM test confirmed the ladder (5 -> 3 -> 2, then the "unable to process" message).
+
+Command: `eval_rag --ids 3,8,21,31,32,33,34,35,36,37,38,39,40,49 --pause 5` (results in `eval_rag_results_subset.json`; the full results file was not touched). No 429 and no 413 occurred in this run, and every LLM call was answered by `gpt-oss-20b`.
+
+| id | before | after: schemes used / est. tokens / Groq prompt_tokens | model | sources | citation guard |
+|---|---|---|---|---|---|
+| 8 | 413, 0 sources, failure message | 4 / 2,735 / 1,774 | gpt-oss-20b | 4 | ran, passed |
+| 21 | 413, 0 sources, failure message | 4 / 2,677 / 1,773 | gpt-oss-20b | 4 | ran, passed |
+| 35 "capital of France" | 413 failure message | 4 / 2,658 / 1,750 | gpt-oss-20b | 0 | ran, **declined** |
+| 38 Tamil cricket | 413 failure message | 4 / 2,661 / 1,649 | gpt-oss-20b | 0 | ran, **declined** |
+| 49 "योजना" | 413 failure message | 4 / 2,661 / 1,719 | gpt-oss-20b | 0 | ran, declined (no scheme named) |
+| 3 | router `out_of_scope` | not sent to the LLM | - | 0 | did not run |
+| 31-34, 36, 37, 39, 40 | router `out_of_scope` | not sent to the LLM | - | 0 | did not run |
+
+- **q35 and q38 are now declined by the citation guard, not by the intent router.** The router sends both to `scheme_search`; the LLM answered, the answer named no retrieved scheme, and the guard replaced it with the decline message. Before the token budget they were declined only because the request failed. All 10 out-of-scope ids are declined: 8 by the router, 2 by the guard.
+- **Requests dropped from 8,917-13,741 tokens to about 1,650-1,775**, so the 8,000 tokens/min cap is no longer hit by a single query. The ladder itself did not need to fire in this run.
+- The subset citation rate (14.3%) is not comparable to the full-run 26%; only q8 and q21 are scheme questions. A full 50-query re-run has not been done after the token budget.
+- Not fixed: q3 ("ke baare mein", Romanized Hindi) has no router pattern and stays `out_of_scope`.
+
+The sections below are the previous 488-scheme results, kept as history.
+
+---
+
+## History — 488-scheme runs (2026-10-10 and 2026-10-13)
+
 Run date: 2026-10-10 (re-run after intent-classifier and engine fixes; supersedes the 2026-09-15 run)
 LLM: Groq `openai/gpt-oss-20b` (primary) with `openai/gpt-oss-120b` as the 429 fallback (added 2026-10-13). Embeddings: `multilingual-e5-small`.
 

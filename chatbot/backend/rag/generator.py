@@ -3,6 +3,7 @@ Run test: python -m chatbot.backend.rag.generator  (from repo root)
 """
 import json
 import logging
+import re
 
 from ..llm.base import ContextTooLargeError
 from ..llm.factory import get_llm
@@ -19,7 +20,16 @@ UNAVAILABLE_MESSAGE = (
     "moment or visit myscheme.gov.in for scheme information."
 )
 
-TRUNCATED_TOP_K = 3
+# Groq's free tier caps a single request at 8,000 tokens/min per model, so the prompt is
+# budgeted well under that: per-scheme text is capped, the whole prompt is capped, and a
+# "too large" rejection retries with fewer schemes.
+SCHEME_CHAR_CAP = 1500
+MAX_PROMPT_TOKENS = 5500
+CHARS_PER_TOKEN = 3  # conservative; English runs ~4 chars/token
+RETRY_SCHEME_COUNTS = (5, 3, 2)
+# Share of SCHEME_CHAR_CAP each section is guaranteed; unused budget goes to later
+# sections in order (the FAQ only gets leftovers).
+SECTION_SHARES = {"description": 500, "benefits": 400, "eligibility": 350, "application": 250, "faq": 0}
 
 SYSTEM_PROMPT = """You are a government scheme assistant. You answer ONLY using the \
 retrieved scheme content provided below in the user message. You never use outside \
@@ -60,24 +70,41 @@ def _format_scheme_context(hit: dict) -> str:
     application = scheme.get("application", {})
     faq = scheme.get("faq", []) or []
 
-    lines = [f"### Scheme: {name}"]
+    sections: dict[str, list[str]] = {key: [] for key in SECTION_SHARES}
     if overview.get("description"):
-        lines.append(f"Description: {overview['description']}")
+        sections["description"].append(f"Description: {overview['description']}")
     if benefits.get("financial_assistance"):
-        lines.append(f"Financial assistance: {benefits['financial_assistance']}")
+        sections["benefits"].append(f"Financial assistance: {benefits['financial_assistance']}")
     if benefits.get("other_benefits"):
-        lines.append("Other benefits: " + " | ".join(benefits["other_benefits"]))
+        sections["benefits"].append("Other benefits: " + " | ".join(benefits["other_benefits"]))
     if eligibility.get("conditions"):
-        lines.append("Eligibility conditions: " + " | ".join(eligibility["conditions"]))
+        sections["eligibility"].append("Eligibility conditions: " + " | ".join(eligibility["conditions"]))
     if eligibility.get("exclusions"):
-        lines.append("Eligibility exclusions: " + " | ".join(eligibility["exclusions"]))
+        sections["eligibility"].append("Eligibility exclusions: " + " | ".join(eligibility["exclusions"]))
     if application.get("documents"):
-        lines.append("Required documents: " + " | ".join(application["documents"]))
+        sections["application"].append("Required documents: " + " | ".join(application["documents"]))
     if application.get("steps"):
-        lines.append("Application steps: " + " | ".join(application["steps"]))
+        sections["application"].append("Application steps: " + " | ".join(application["steps"]))
     for item in faq[:5]:
         if item.get("question"):
-            lines.append(f"FAQ - Q: {item['question']} A: {item.get('answer', '')}")
+            sections["faq"].append(f"FAQ - Q: {item['question']} A: {item.get('answer', '')}")
+
+    texts = {key: "\n".join(parts) for key, parts in sections.items()}
+    allowed = {key: min(len(text), SECTION_SHARES[key]) for key, text in texts.items()}
+    leftover = SCHEME_CHAR_CAP - sum(allowed.values())
+    for key, text in texts.items():
+        extra = min(len(text) - allowed[key], max(leftover, 0))
+        allowed[key] += extra
+        leftover -= extra
+
+    lines = [f"### Scheme: {name}"]
+    for key, text in texts.items():
+        if not text:
+            continue
+        if len(text) > allowed[key]:
+            text = text[: max(allowed[key] - 1, 0)].rstrip() + "…"
+        if text:
+            lines.append(text)
 
     return "\n".join(lines)
 
@@ -89,6 +116,23 @@ def _build_prompt(query: str, retrieved_schemes: list[dict]) -> str:
 {context}
 
 User question: {query}"""
+
+
+def _estimate_tokens(system_prompt: str, prompt: str) -> int:
+    return (len(system_prompt) + len(prompt)) // CHARS_PER_TOKEN
+
+
+def _fit_to_budget(query: str, schemes: list[dict], system_prompt: str) -> list[dict]:
+    """Drop the lowest-ranked schemes until the estimated prompt fits MAX_PROMPT_TOKENS."""
+    schemes = list(schemes)
+    while len(schemes) > 1 and _estimate_tokens(system_prompt, _build_prompt(query, schemes)) > MAX_PROMPT_TOKENS:
+        schemes.pop()
+    return schemes
+
+
+def _scheme_count_ladder(available: int) -> list[int]:
+    """Scheme counts to try, largest first: all retrieved, then 3, then 2."""
+    return [available] + [n for n in RETRY_SCHEME_COUNTS if n < available]
 
 
 def generate(
@@ -109,20 +153,23 @@ def generate(
 
     try:
         llm = get_llm()
-        try:
-            raw = llm.generate(
-                _build_prompt(query, retrieved_schemes), system=system_prompt
-            )
-        except ContextTooLargeError:
-            logger.warning(
-                "generator: context too large at top_k=%d, retrying with top_k=%d",
+        all_schemes = retrieved_schemes
+        raw = None
+        for count in _scheme_count_ladder(len(all_schemes)):
+            retrieved_schemes = _fit_to_budget(query, all_schemes[:count], system_prompt)
+            prompt = _build_prompt(query, retrieved_schemes)
+            logger.info(
+                "generator: schemes_used=%d est_prompt_tokens=%d",
                 len(retrieved_schemes),
-                TRUNCATED_TOP_K,
+                _estimate_tokens(system_prompt, prompt),
             )
-            retrieved_schemes = retrieved_schemes[:TRUNCATED_TOP_K]
-            raw = llm.generate(
-                _build_prompt(query, retrieved_schemes), system=system_prompt
-            )
+            try:
+                raw = llm.generate(prompt, system=system_prompt)
+                break
+            except ContextTooLargeError:
+                logger.warning("generator: context too large at %d schemes, retrying with fewer", len(retrieved_schemes))
+        if raw is None:
+            raise ContextTooLargeError("prompt too large even at the smallest scheme count")
     except Exception:
         logger.exception("generator: LLM generation failed after all fallbacks")
         return {
@@ -137,14 +184,11 @@ def generate(
     # Grounding check: an answer that names none of the retrieved schemes was produced
     # from the LLM's own knowledge (e.g. "Paris"), not from context. This applies at any
     # reported confidence — the LLM labelled "Paris" as "medium" in the 2026-10-10 eval.
-    normalized_answer = _normalize_for_match(answer)
-    if not any(
-        _normalize_for_match(hit["scheme_name"]) in normalized_answer
-        for hit in retrieved_schemes
-        if hit.get("scheme_name", "").strip()
-    ):
-        logger.warning("generator: answer names no retrieved scheme (confidence=%s), declining", confidence)
+    if not any(names_scheme(answer, hit.get("scheme_name", "")) for hit in retrieved_schemes):
+        logger.warning("generator: citation_guard=declined (answer names no retrieved scheme, confidence=%s)", confidence)
         answer = DECLINE_MESSAGE
+    else:
+        logger.info("generator: citation_guard=passed")
 
     declined = DECLINE_MESSAGE.strip().lower() in answer.strip().lower()
     sources = []
@@ -173,11 +217,31 @@ def generate(
     }
 
 
+_HYPHENS = ("‐", "‑", "‒", "–", "—", "−")
+_QUOTES = {"‘": "'", "’": "'", "“": '"', "”": '"'}
+_EDGE_PUNCT_RE = re.compile(r"^[\W_]+|[\W_]+$")
+MIN_NAME_CHARS = 4  # shorter normalised names ("E.", "'") would match by accident
+
+
 def _normalize_for_match(text: str) -> str:
-    # LLMs emit non-breaking/typographic hyphens and odd spacing that defeat substring matching.
-    for dash in ("‐", "‑", "‒", "–", "—"):
+    """Lowercase, unify Unicode hyphens/quotes, collapse spaces, strip edge punctuation.
+
+    LLMs emit non-breaking/typographic hyphens and odd spacing, and some stored scheme names carry
+    stray trailing punctuation ("Abhayakiranam Scheme-"); both defeat plain substring matching.
+    """
+    for dash in _HYPHENS:
         text = text.replace(dash, "-")
-    return " ".join(text.lower().split())
+    for fancy, plain in _QUOTES.items():
+        text = text.replace(fancy, plain)
+    return _EDGE_PUNCT_RE.sub("", " ".join(text.lower().split()))
+
+
+def names_scheme(answer: str, scheme_name: str) -> bool:
+    """True when `answer` names `scheme_name` (both normalised; stored names are not modified)."""
+    name = _normalize_for_match(scheme_name or "")
+    if len(name) < MIN_NAME_CHARS:
+        return False
+    return name in _normalize_for_match(answer)
 
 
 def _parse_response(raw: str) -> tuple[str, str]:

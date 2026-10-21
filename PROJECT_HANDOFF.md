@@ -1,7 +1,7 @@
 # Government Scheme AI — Project Handoff Document
 
-Last updated: October 2026
-Status: Extraction in progress (488/2066 PDFs processed). Chatbot built (backend, frontend, sync pipeline, evaluation).
+Last updated: 2026-10-21
+Status: Extraction complete (2,066/2,066 PDFs processed), loaded into MongoDB and ChromaDB, and re-evaluated on the full corpus. Chatbot built (backend, frontend, sync pipeline, evaluation).
 
 ---
 
@@ -40,14 +40,14 @@ Work is committed directly on `main`.
 
 ### PDF Processing
 - Total PDFs: 2,066
-- Processed: 488 (in `dataset/gov_myscheme/test_output_unstructured/`)
-- Remaining: 1,578
-- To continue: run `python backend/extraction/batch_run_200.py` (processes next 200)
-- Resume is safe at any time — idempotent, never reprocesses completed files
+- Processed: **2,066 of 2,066** (in `dataset/gov_myscheme/test_output_unstructured/`), completed 2026-10-21
+- Failed: 0. Schema-invalid: 0. Unstructured pages used in total: 2,339 (limit 15,000/month)
+- MongoDB (`gov_scheme_ai.schemes`): 2,066 documents. ChromaDB (`schemes`): 7,528 chunks (8,264 minus 736 content-free description chunks). "sign out" in scheme names: 0 in both.
+- `batch_run_200.py` is idempotent; rerunning it with nothing left prints "Nothing to do"
 
 ### Git
 - Active branch: `main`
-- Last commit: `01f939a`
+- Last commit before the full-corpus run: `845df5f`; the full-corpus commit follows it on `main`
 
 ---
 
@@ -248,19 +248,28 @@ Note: `overview.description` is populated for 100% of files (orphan content capt
 
 ## Chatbot Evaluation Results
 
-Evaluation harness: `chatbot/evaluation/`. Full detail in `EVAL_REPORT.md`. Latest run: 2026-10-10 (run from repo root with `python -m chatbot.evaluation.eval_rag` — running from another directory creates an empty ChromaDB and silently breaks retrieval).
+Evaluation harness: `chatbot/evaluation/`. Full detail in `EVAL_REPORT.md`. Latest run: **2026-10-21, full 2,066-scheme corpus** (run from repo root with `python -m chatbot.evaluation.eval_rag` — running from another directory creates an empty ChromaDB and silently breaks retrieval).
 
-Models used for these numbers: Groq `openai/gpt-oss-20b` primary, `openai/gpt-oss-120b` fallback.
+Six result columns (per-change effects and the open items in `EVAL_REPORT.md`):
 
-| Metric | Result |
-|---|---|
-| Eligibility accuracy | 95% (19/20) |
-| Out-of-scope decline rate | **100% (10/10)** after the citation guard (2026-10-13) |
-| Source citation rate | 30% (15/50), from the 2026-10-10 full run (not re-run) |
-| Retrieval spot-check (top 5) | 70% (7/10), 2026-10-10 |
-| Average response time | 28.9s on 2026-10-10 (429 retries + Ollama fallback); not re-run with the fallback chain |
+| Metric | 1. 488 schemes (10-10) | 2. 2,066, before token budget | 3. + token budget (14-id subset) | 4. + cleanup: regression | 5. + skip empty description chunks | 6. + guard fix + tighter Hindi patterns (current) |
+|---|---|---|---|---|---|---|
+| Eligibility accuracy | 95% | 95% | n/a | 95% | 95% | **95% (19/20)** |
+| Out-of-scope declined | 80% (8/10) | 100%, 2 by request failure | 10/10 | 10/10 (8 router, 2 guard) | 10/10 (8 router, 2 guard) | **10/10 (8 router, 2 citation guard)** |
+| Source citation rate | 30% | 26% | 14.3% of 14 ids | 16% | 26% | **28% (14/50)** |
+| Retrieval spot-check (top 5) | 70% | 70% | not run | 60% | 70% | **70% (7/10)** |
+| Average response time | 28.9s | 11.2s | 1.7s | 2.1s | 2.5s | **3.7s** |
+| Groq 413 failures | n/a | 5 | 0 | 0 | 0 | **0** |
+| Answers per model | 20b + Ollama | 20b 9, 120b 6, Ollama 4 | 20b only | 20b 16, 120b 7, Ollama 0 | 20b 19, 120b 4, Ollama 0 | **20b 21, 120b 3, Ollama 0** |
+| Mongo docs / Chroma chunks | 488 / 1,952 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 7,528 | **2,066 / 7,528** |
 
-**Note:** the 2026-10-10 run showed 80% decline because two queries (e.g. "What is the capital of France?") were answered from LLM memory. The citation guard fixes this: ids 31-40 re-run gave 10/10 declined. An interim run printed 90% because the eval's `is_declined` missed a translated Tamil decline; that is fixed by the URL protection in translation, and the eval now prints 100%.
+Column 6 = token budget (per-scheme 1,500-character cap, 5,500-token prompt cap, 4 -> 3 -> 2 scheme retry on 413) + pop-up text stripped from all descriptions + 73 file-name scheme names recovered + content-free description chunks removed from Chroma + citation guard that normalises names (edge punctuation, Unicode hyphens/quotes, min 4 characters; `test_citation_guard.py`) + Romanized-Hindi `kya hai` / `batao` / `bataiye` / `ke baare mein` only with a scheme word. Differences of a query or two between runs are model wording variance.
+
+**Chroma now holds 7,528 chunks** (8,264 before); every scheme still has at least 3 (736 schemes have 3, 1,330 have 4).
+
+**What went wrong in column 4:** the cleanup left 732 empty descriptions, whose name-only chunks outranked real matches (q1: the real Atal Pension Yojana chunk was at rank #22). Skipping them in `load_chroma.py` / `fix_descriptions.py` restored the numbers.
+
+**Caveat on the 100% decline rate in column 2:** q35 and q38 were declined only because Groq returned 413 and every fallback failed. From column 3 on, both are declined by the citation guard itself.
 
 ---
 
@@ -272,16 +281,25 @@ Models used for these numbers: Groq `openai/gpt-oss-20b` primary, `openai/gpt-os
 - **MyScheme sync:** `scheme_sync.py` currently uses `requests` + BeautifulSoup only; a Playwright scraper is planned but not implemented. Needs API key registration, or a Playwright scraper (not yet built), to fetch JS-rendered pages.
 - **Groq rate limits:** the free tier allows 8,000 tokens/min per model (1,000 requests/day); a RAG request uses ~4-5k tokens. The 20b -> 120b fallback doubles the budget, but bursts of 3+ heavy queries in a minute still exhaust both buckets and fall to Ollama. Ollama's fallback model is `OLLAMA_MODEL=gemma3:4b` (installed), but its 120s timeout makes that path slow under load.
 - Eligibility engine evaluates merged multi-clause condition strings as one unit (Airavata Scheme case fails).
-- Only 488 of 2,066 schemes are loaded; schemes outside this set (e.g. PM-Kisan) cannot be found.
+- **Prompt size vs Groq free tier:** handled by a per-scheme 1,500-character cap, a ~5,500-token prompt cap and a 4 -> 3 -> 2 scheme retry on 413 (`rag/generator.py`).
+- **13 schemes still have truncated scheme names** (`Dr. B.`, `E.`, `'`, `H.`, `J.`, `Meit`, `MMKY-`, ...), recoverable from the source PDFs like the 73 file-name ones were.
+- **732 schemes have an empty description** after the pop-up cleanup (the extraction only captured a header) and 4 more are under 40 characters; they have no description chunk in Chroma (deliberately), only benefits/eligibility/application. 67 other-section chunks are also content-free.
+- **The citation guard's exact-name match is brittle against model abbreviations** ("Amma Two Wheeler Scheme" for "... for Working Women", "Assam Arogya Nidhi (AAN) Scheme"): q3 and q24 decline at high confidence in some runs. The trailing-punctuation case (`Abhayakiranam Scheme-`) is fixed.
+- **The 1,500-character per-scheme cap drops most facts for long schemes** (q22, q28 decline at low confidence); about 3,000 characters would still fit the 5,500-token budget. Not changed.
+- q6 (Tamil) now answers about a wrong scheme (Snehayanam) with sources; Tamil specific-scheme retrieval is still open.
+- The pop-up sentence also remains inside 84 `application`/`eligibility`/`benefits` chunks.
 
 ---
 
 ## Remaining Work (in order)
 
-1. Process remaining 1,578 PDFs (`python backend/extraction/batch_run_200.py`, 200 per batch, ~70 min each, idempotent)
-2. Re-ingest the full dataset into MongoDB + ChromaDB
-3. Final evaluation on the complete dataset
+Done: extraction 2,066/2,066, MongoDB + ChromaDB re-ingest, token budget with 413 retry, pop-up text stripped from all descriptions (`fix_descriptions.py`), 73 file-name scheme names recovered from the source PDFs (`fix_filename_schemes.py`), content-free description chunks skipped, citation-guard name normalisation (trailing punctuation, Unicode hyphens, min 4 characters), Romanized-Hindi router patterns tightened to require a scheme word, full re-evaluation.
+
+1. Make the citation guard tolerate model abbreviations of scheme names (leading words / token overlap), and consider raising the per-scheme cap from 1,500 to about 3,000 characters; re-run the eval
+2. Recover the 13 remaining truncated scheme names the same way as the 73; consider the 67 content-free benefits/eligibility/application chunks and the pop-up text left in 84 chunks
+3. Tamil retrieval for queries that name a specific scheme (q5, q6, q18, q26 still miss; q6 now answers with a wrong scheme)
 4. MyScheme API key, or build the (planned, not yet implemented) Playwright scraper, for the sync pipeline
+5. Feedback buttons in the hero widget
 
 ### To Resume in a New Claude Session
 Paste this at the start:

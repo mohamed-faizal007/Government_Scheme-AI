@@ -9,6 +9,7 @@ from pathlib import Path
 
 from pymongo import ASCENDING
 
+from .description_utils import clean_description
 from .mongo_client import get_schemes_collection
 from .scheme_name_utils import clean_scheme_name
 
@@ -58,6 +59,9 @@ def run() -> None:
             doc = dict(data)
             if scheme_name:
                 doc.setdefault("metadata", {})["scheme_name"] = clean_scheme_name(scheme_name)
+            overview = doc.get("overview")
+            if isinstance(overview, dict) and overview.get("description"):
+                overview["description"] = clean_description(overview["description"])
             doc["source_file"] = source_file
             doc["ingested_at"] = datetime.now(timezone.utc)
             doc["embedding_status"] = "pending"

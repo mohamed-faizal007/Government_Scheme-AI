@@ -9,6 +9,7 @@ import chromadb
 
 from ..config import settings
 from ..embeddings.multilingual_e5 import MultilingualE5Embedder
+from .description_utils import has_description_content
 from .mongo_client import get_schemes_collection
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(message)s")
@@ -52,6 +53,10 @@ def build_chunks(scheme: dict) -> list[dict]:
 
     chunks = []
     for section, content in sections.items():
+        # A description chunk with no real content would embed as just "passage: <name>." and
+        # outrank real matches on name-like queries; the scheme stays indexed via its other chunks.
+        if section == "description" and not has_description_content(content):
+            continue
         if section == "benefits":
             text = f"passage: {scheme_name} benefits: {content}"
         elif section == "eligibility":

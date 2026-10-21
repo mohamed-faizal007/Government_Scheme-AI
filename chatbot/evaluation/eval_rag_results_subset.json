@@ -1,65 +1,239 @@
 {
   "metrics": {
-    "total_queries": 2,
-    "out_of_scope_total": 0,
-    "out_of_scope_declined": 0,
-    "decline_rate_pct": 0.0,
-    "source_citation_rate_pct": 0.0,
-    "avg_response_time_s": 12.312,
-    "retrieval_spot_check_hits": 0,
+    "total_queries": 14,
+    "out_of_scope_total": 10,
+    "out_of_scope_declined": 10,
+    "decline_rate_pct": 100.0,
+    "source_citation_rate_pct": 14.3,
+    "avg_response_time_s": 1.714,
+    "retrieval_spot_check_hits": 2,
     "retrieval_spot_check_total": 2,
-    "retrieval_spot_check_pct": 0.0
+    "retrieval_spot_check_pct": 100.0
   },
   "results": [
     {
-      "id": 5,
+      "id": 3,
       "category": "scheme_search",
-      "query": "ஐராவதா திட்டம் பற்றி சொல்லுங்கள்",
-      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
+      "query": "Assam Arogya Nidhi Scheme ke baare mein bataiye",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
       "sources": [],
       "confidence": "low",
-      "intent": "scheme_search",
-      "response_time_s": 6.719,
+      "intent": "out_of_scope",
+      "response_time_s": 0.187,
       "error": null
     },
     {
-      "id": 6,
+      "id": 8,
       "category": "scheme_search",
-      "query": "அம்மா இரு சக்கர வண்டி திட்டம் பற்றி விவரம் தேவை",
+      "query": "What benefits does the Accidental Death Assistance for Construction Workers scheme provide in Delhi?",
+      "answer": "The Accidental Death Assistance for the Construction Workers scheme provides a financial assistance of ₹2,00,000 to the nominees/dependents of a registered worker who dies in an accident during the course of employment in Delhi.",
+      "sources": [
+        {
+          "scheme_name": "Accidental Death Assistance for the Construction Workers",
+          "section": "eligibility",
+          "source_file": "adacw copy.json"
+        },
+        {
+          "scheme_name": "Funeral Assistance for the Construction Workers",
+          "section": "eligibility",
+          "source_file": "facw.json"
+        },
+        {
+          "scheme_name": "Natural Death Assistance for the Construction Workers",
+          "section": "eligibility",
+          "source_file": "ndacw.json"
+        },
+        {
+          "scheme_name": "Maternity Assistance for the Construction Workers",
+          "section": "eligibility",
+          "source_file": "mafcw.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 4.272,
+      "error": null
+    },
+    {
+      "id": 21,
+      "category": "benefits_documents",
+      "query": "What documents are required to apply for Atal Pension Yojana?",
+      "answer": "To apply for Atal Pension Yojana, you need to provide KYC details which are fetched from an active bank or post office savings account.",
+      "sources": [
+        {
+          "scheme_name": "Atal Pension Yojana",
+          "section": "application",
+          "source_file": "apy copy.json"
+        },
+        {
+          "scheme_name": "Atal Sneh Yojana",
+          "section": "application",
+          "source_file": "asyg copy.json"
+        },
+        {
+          "scheme_name": "Atal Asra Yojana",
+          "section": "application",
+          "source_file": "aay-goa copy.json"
+        },
+        {
+          "scheme_name": "Divyang Pension Yojana",
+          "section": "application",
+          "source_file": "dpyup copy.json"
+        }
+      ],
+      "confidence": "high",
+      "intent": "scheme_search",
+      "response_time_s": 1.636,
+      "error": null
+    },
+    {
+      "id": 31,
+      "category": "out_of_scope",
+      "query": "What's the weather today in Chennai?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.001,
+      "error": null
+    },
+    {
+      "id": 32,
+      "category": "out_of_scope",
+      "query": "Can you write me a Python script to scrape a website?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.002,
+      "error": null
+    },
+    {
+      "id": 33,
+      "category": "out_of_scope",
+      "query": "Who will win the next general election?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.002,
+      "error": null
+    },
+    {
+      "id": 34,
+      "category": "out_of_scope",
+      "query": "Tell me a joke.",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 1.562,
+      "error": null
+    },
+    {
+      "id": 35,
+      "category": "out_of_scope",
+      "query": "What is the capital of France?",
       "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
       "sources": [],
       "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 17.904,
+      "response_time_s": 1.052,
+      "error": null
+    },
+    {
+      "id": 36,
+      "category": "out_of_scope",
+      "query": "Can you help me write a resignation letter?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.003,
+      "error": null
+    },
+    {
+      "id": 37,
+      "category": "out_of_scope",
+      "query": "आज शेयर बाजार कैसा चल रहा है?",
+      "answer": "मैं केवल सरकारी योजना की जानकारी, पात्रता जांच और दस्तावेज़ सत्यापन के साथ मदद कर सकता हूं। किसी अन्य चीज़ के लिए, कृपया जांच करें myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 2.225,
+      "error": null
+    },
+    {
+      "id": 38,
+      "category": "out_of_scope",
+      "query": "இன்று கிரிக்கெட் மேட்ச் விவரம் என்ன?",
+      "answer": "இது பற்றி எனக்கு நம்பக தகவல் இல்லை தயவு செய்து MSchem துறையை சரிபார்க்கவும் myscheme.gov.in",
+      "sources": [],
+      "confidence": "low",
+      "intent": "scheme_search",
+      "response_time_s": 11.505,
+      "error": null
+    },
+    {
+      "id": 39,
+      "category": "out_of_scope",
+      "query": "How do I cook biryani?",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.009,
+      "error": null
+    },
+    {
+      "id": 40,
+      "category": "out_of_scope",
+      "query": "Write a poem about love.",
+      "answer": "I can only help with government scheme information, eligibility checks, and document verification. For anything else, please check myscheme.gov.in.",
+      "sources": [],
+      "confidence": "low",
+      "intent": "out_of_scope",
+      "response_time_s": 0.005,
+      "error": null
+    },
+    {
+      "id": 49,
+      "category": "edge_case",
+      "query": "योजना",
+      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
+      "sources": [],
+      "confidence": "low",
+      "intent": "scheme_search",
+      "response_time_s": 1.532,
       "error": null
     }
   ],
   "spot_checks": [
     {
-      "id": 5,
-      "query": "ஐராவதா திட்டம் பற்றி சொல்லுங்கள்",
-      "expected_scheme": "Airavata Scheme",
+      "id": 3,
+      "query": "Assam Arogya Nidhi Scheme ke baare mein bataiye",
+      "expected_scheme": "Assam Arogya Nidhi Scheme",
       "top5_scheme_names": [
-        "Cancer Suraksha Scheme",
-        "Border Areas Development Department",
-        "Atma Nirbhar Krishi Yojana",
-        "Allowance To Dwarf",
-        "Aamar Dukan On Wheels"
+        "Assam Arogya Nidhi Scheme",
+        "Atal Amrit Abhiyan Scheme",
+        "Assam Orunodoi Scheme",
+        "Arundhati Gold Scheme",
+        "Deen Dayal Divyangjan Pension Scheme - Assam"
       ],
-      "found_in_top5": false
+      "found_in_top5": true
     },
     {
-      "id": 6,
-      "query": "அம்மா இரு சக்கர வண்டி திட்டம் பற்றி விவரம் தேவை",
-      "expected_scheme": "Amma Two Wheeler Scheme for Working Women",
+      "id": 8,
+      "query": "What benefits does the Accidental Death Assistance for Construction Workers scheme provide in Delhi?",
+      "expected_scheme": "Accidental Death Assistance for the Construction Workers",
       "top5_scheme_names": [
-        "Cancer Suraksha Scheme",
-        "Border Areas Development Department",
-        "Aamar Dukan On Wheels",
-        "Coconut Palm Insurance Scheme",
-        "Abhinandan Education Loan Subsidy Scheme"
+        "Accidental Death Assistance for the Construction Workers",
+        "Funeral Assistance for the Construction Workers",
+        "Natural Death Assistance for the Construction Workers",
+        "Maternity Assistance for the Construction Workers",
+        "Medical Assistance for the Construction Workers"
       ],
-      "found_in_top5": false
+      "found_in_top5": true
     }
   ]
 }

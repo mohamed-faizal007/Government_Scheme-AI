@@ -48,10 +48,13 @@ class GroqProvider(BaseLLM):
                     if not content:
                         logger.warning("llm_provider=groq model=%s invalid_response, falling back to ollama", model)
                         return self._fallback(prompt, system)
-                    logger.info("llm_provider=groq model=%s", model)
+                    usage = getattr(completion, "usage", None)
+                    logger.info("llm_provider=groq model=%s prompt_tokens=%s", model, getattr(usage, "prompt_tokens", "?"))
                     return content
                 except APIStatusError as exc:
-                    if exc.status_code == 413:
+                    # Groq reports an oversized prompt as 413, and sometimes as a 429 whose
+                    # message says "Request too large"; switching model or waiting cannot fix either.
+                    if exc.status_code == 413 or "request too large" in str(exc).lower():
                         logger.warning("llm_provider=groq model=%s context_too_large", model)
                         raise ContextTooLargeError(str(exc)) from exc
                     if exc.status_code == 429:

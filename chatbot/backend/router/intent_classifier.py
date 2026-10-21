@@ -17,6 +17,10 @@ COMPARISON_PATTERNS = [
     r"\bcompare\b", r"difference between", r"which is better", r"\bvs\b",
 ]
 
+_ROMAN_HINDI_SCHEME_WORDS = (
+    r"yojana|yojna|scheme|labh|subsidy|pension|sahayata|scholarship|bima|anudan|chhatravritti"
+)
+
 SCHEME_SEARCH_PATTERNS = [
     r"what is", r"tell me about", r"how to apply", r"schemes for", r"benefits of",
     r"documents required", r"schemes? (?:are|is)?\s*available", r"available for",
@@ -28,6 +32,10 @@ SCHEME_SEARCH_PATTERNS = [
     r"\bwhat schemes?\b", r"\bwhich schemes?\b", r"\bgovernment schemes?\b",
     r"\bschemes? for (?:farmers?|women|students?)\b", r"\bwhat are the schemes?\b",
     r"\btell me (?:the |about )?schemes?\b", r"\bavailable schemes?\b",
+    # Romanized Hindi. The generic phrases only count together with a scheme word, so
+    # "aaj mausam kya hai" and "mujhe kuch batao" stay out of scope.
+    r"\b(?:yojana|yojna)\b",
+    rf"(?=.*\b(?:{_ROMAN_HINDI_SCHEME_WORDS})\b).*\b(?:ke\s+baa?re\s+mein|bataiye|batao|kya\s+hai)\b",
 ]
 
 # Native-script keywords, checked before any translation. Substring match

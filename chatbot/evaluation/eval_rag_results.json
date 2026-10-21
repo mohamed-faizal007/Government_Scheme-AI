@@ -4,8 +4,8 @@
     "out_of_scope_total": 10,
     "out_of_scope_declined": 10,
     "decline_rate_pct": 100.0,
-    "source_citation_rate_pct": 28.0,
-    "avg_response_time_s": 3.66,
+    "source_citation_rate_pct": 32.0,
+    "avg_response_time_s": 4.406,
     "retrieval_spot_check_hits": 7,
     "retrieval_spot_check_total": 10,
     "retrieval_spot_check_pct": 70.0
@@ -15,7 +15,7 @@
       "id": 1,
       "category": "scheme_search",
       "query": "Tell me about the Atal Pension Yojana",
-      "answer": "Atal Pension Yojana (APY) is an old‑age income security scheme designed for savings account holders between 18 and 40 years old who are not income‑tax payees. It aims to protect workers in the unorganized sector from longevity risk and encourages voluntary saving for retirement. The scheme is primarily targeted at the poor and under‑privileged workers.\n\n**Benefits**\nUpon reaching 60 years of age, a subscriber receives a guaranteed minimum pension ranging from Rs 1,000 to Rs 5,000 per month, which continues until death.\n\n**Eligibility**\n• Minimum age to join: 18 years; maximum age: 40 years.\n• Pension starts at 60 years.\n• Contributions are made through an auto‑debit facility from a savings bank or post‑office account.\n\n**Required Documents**\nKYC details are automatically fetched from the subscriber’s active bank or post‑office savings account.\n\n**Application Steps**\n1. Open an APY account online via the subscriber’s internet banking facility.\n2. Log in to the internet banking account and follow the prompts to register for APY.\n\nThese points summarize the scheme as provided in the retrieved content.",
+      "answer": "The Atal Pension Yojana (APY) is an old age income security scheme for savings account holders aged 18-40 years who are not income tax payees. It aims to address longevity risks among workers in the unorganized sector and encourages voluntary retirement savings. Subscribers contribute monthly amounts via auto‑debit from a savings bank account; the contribution schedule is available in the APY Subscriber Contribution Chart. The scheme charges fees and overdue interest as prescribed by PFRDA, and subscribers may raise grievances free of cost online through the NPS CRA website. Upon reaching the age of 60, each subscriber receives a guaranteed minimum pension of Rs. 1,000 to Rs. 5,000 per month depending on the chosen contribution level, and the spouse receives a similar pension after the subscriber’s demise. Eligibility requires a minimum joining age of 18 and a maximum of 40, with the pension starting at 60. KYC details are fetched from the applicant’s active bank or post office savings account. The application can be done online via the applicant’s net banking portal or by visiting the relevant bank or post office to open an APY account.",
       "sources": [
         {
           "scheme_name": "Atal Pension Yojana",
@@ -40,14 +40,14 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 9.251,
+      "response_time_s": 8.173,
       "error": null
     },
     {
       "id": 2,
       "category": "scheme_search",
       "query": "What is the Aam Aadmi Bima Yojana?",
-      "answer": "The Aam Aadmi Bima Yojana (AABY) is a government-sponsored social security scheme launched in 2007 and administered by the Life Insurance Corporation of India (LIC). It provides affordable life insurance coverage to the unorganized sector, aiming to give financial support to economically weaker sections in case of the death or disability of an earning family member.",
+      "answer": "Aam Aadmi Bima Yojana (AABY) is a government-sponsored social security scheme launched in 2007 and administered by the Life Insurance Corporation of India (LIC). It aims to provide affordable life insurance coverage to the unorganized sector of the population, offering financial support to the economically weaker sections in case of the death or disability of an earning member of a family. The scheme targets workers in unorganized occupations such as agriculture, fishery, dairy, handloom, construction, and similar sectors. The head of the family or the earning member, aged between 18 and 59 years, is eligible to apply. The premium of Rs. 200 per person per annum is shared between the central and state governments in a 50:50 ratio, with Rs. 100 borne by the central government, Rs. 30 by the state government, and Rs. 70 by the beneficiary. Premiums are deducted through the electronic clearance system (ECS) or other payment modes. Coverage includes Rs. 30,000 in case of natural death, Rs. 75,000 in case of accidental death, and Rs. 37,500 for partial or permanent disability due to an accident, along with an add‑on benefit for education.",
       "sources": [
         {
           "scheme_name": "Aam Aadmi Bima Yojana",
@@ -72,18 +72,39 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 2.943,
+      "response_time_s": 2.355,
       "error": null
     },
     {
       "id": 3,
       "category": "scheme_search",
       "query": "Assam Arogya Nidhi Scheme ke baare mein bataiye",
-      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
-      "sources": [],
-      "confidence": "low",
+      "answer": "The Assam Arogya Nidhi (AAN) Scheme is a health assistance programme launched by the Health & Family Welfare Department of the Government of Assam to provide financial help for both general and specialised treatment of life‑threatening diseases and injuries caused by natural and manmade disasters. The scheme covers conditions such as heart diseases, cancer, kidney and urinary diseases, orthopaedic ailments, thalassemia, bone‑marrow transplant, AIDS, and chronic mental illness requiring surgical intervention, as well as serious accident cases.\n\nUnder AAN, the State Government contributes 50% of the sanctioned funds. The Chief Minister may grant permission directly for the maximum available under AAN. The Chairperson of the Selection Committee can approve grants up to ₹2.00 lakh, while cases above ₹2.00 lakh and up to ₹3.00 lakh are decided by the State‑level committee. The maximum benefit payable is ₹3.00 lakh, with an advance payment of up to ₹3.00 lakh payable to the hospital.\n\nThe scheme is available to all Indian citizens who are ordinarily residents of Assam and whose family income is less than ₹5.00 lakh per annum. There is no age limit for coverage, and the scheme excludes government employees, pensioners, and their families.\n\nRequired documents include a photograph of the patient (attested by a doctor), an attested photocopy of the income certificate by the Revenue Circle Officer, attested photocopy of identity and address proof (e.g., voter ID, Aadhaar card, driving licence), and original bills and vouchers related to the treatment.\n\nIn summary, the Assam Arogya Nidhi Scheme offers comprehensive cashless treatment coverage for serious diseases and injuries, with a maximum assistance of ₹3 lakh, aimed at low‑income families in Assam.\n\n(Scheme: Assam Arogya Nidhi Scheme)",
+      "sources": [
+        {
+          "scheme_name": "Assam Arogya Nidhi Scheme",
+          "section": "eligibility",
+          "source_file": "aan copy.json"
+        },
+        {
+          "scheme_name": "Atal Amrit Abhiyan Scheme",
+          "section": "eligibility",
+          "source_file": "aaas-assam copy.json"
+        },
+        {
+          "scheme_name": "Assam Orunodoi Scheme",
+          "section": "eligibility",
+          "source_file": "aos copy.json"
+        },
+        {
+          "scheme_name": "Arundhati Gold Scheme",
+          "section": "eligibility",
+          "source_file": "ags copy.json"
+        }
+      ],
+      "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 5.02,
+      "response_time_s": 3.675,
       "error": null
     },
     {
@@ -94,7 +115,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 14.44,
+      "response_time_s": 8.989,
       "error": null
     },
     {
@@ -105,14 +126,14 @@
       "sources": [],
       "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 16.05,
+      "response_time_s": 7.676,
       "error": null
     },
     {
       "id": 6,
       "category": "scheme_search",
       "query": "அம்மா இரு சக்கர வண்டி திட்டம் பற்றி விவரம் தேவை",
-      "answer": "அது **விசேஷத் தேவையுள்ள ஆட்களின் தாய்மாருக்கு செனானாம் திட்டம்** முதல் கட்டத்தில், ஒரு மாவட்டத்திற்கு இரண்டு அறுவை சிகிச்சைகள் தேர்ந்தெடுக்கப்படுகின்றன.\n\n**எவ்வாறு பொருத்துவது:** உங்கள் அருகிலுள்ள மாவட்ட சமூக நீதித்துறை அலுவலகத்தை அணுகுங்கள், விண்ணப்ப வடிவத்தை சேகரிக்குங்கள், அல்லது அதிகாரப்பூர்வமான சமூக நீதித்துறை வெப்சைட்டில் இருந்து டவுன்லோட் செய்யுங்கள். \n\n**ஈவு:** \n- கேரளவைச் சேர்ந்த உள்ளூர்வாசிகளும் குடிமகனும் அபிகாயில் இருக்க வேண்டும். \n- துணையை இழந்தவர்கள், சட்டப்பூர்வமாக விவாகரத்து செய்தவர்கள், அல்லது கணவனால் கைவிடப்பட்ட ஒரு மனைவி பொருத்தப்படலாம். \n- தேசிய நம்பிக்கை செயல் (NTA) கீழ் ஊனமுற்ற ஆட்களின் தாய்மார். \n- அப்போஸ்தலர்கள் கீழே ஏழ்மையான வரி வகைக்கு சொந்தமானவர்களாக இருக்க வேண்டும்.\n\n**தேவையான ஆவணங்கள்:** \n- ADHaar என்ற நகல் அல்லது தருநரின் அடையாளத்தின் மற்ற அத்தாட்சி. \n- Passport photo. \n- ரொட்டி அட்டை நகல். \n- அந்த நகர அதிகாரியின் அறிக்கையோ, அல்லது ஒரு சரியான ஆவணமோ, அந்த வழக்கறிஞரின் விதவையை விவாகரத்து செய்துவிட்ட அல்லது கைவிடப்பட்ட நிலையை நிரூபிக்கிறது.\n\nகூடுதலான தகவலுக்கு, தயவுசெய்து சமூக நீதித்துறையின் வெப்சைட்டை அணுகுங்கள் அல்லது மாவட்ட சமூக நீதி அலுவலகத்தை தொடர்புகொள்ளுங்கள்.",
+      "answer": "*Snehayanam Scheme For Mothers Of Persons With Special Needs* இந்தத் திட்டத்தின்கீழ், பொருளாதார நெருக்கடியில் சிக்கித் தவிக்கும் ஆட்களின் தாய்மாருக்கு இலவச மின்னணு இயந்திர ஓட்டுநர்கள் வழங்கப்படுகின்றன.\n\n* என்பதற்கான பதில்கள்Snehayanam Scheme For Mothers Of Persons With Special Needs* (அடிக்குறிப்பைப் பாருங்கள்.)\n\nஇந்த முறையை முடித்த பிறகு, அக்கறைக்குரிய மாவட்ட நீதித்துறை அதிகாரிக்கு ஆதரவளிக்கும் ஆவணங்களோடுகூட அது சமர்ப்பிக்கப்பட வேண்டும்.\n\nஆவணங்களுக்கு வேண்டிய ஆவணங்கள் *Snehayanam Scheme For Mothers Of Persons With Special Needs* (அடிஷேர்: ஏட்ஹார் அல்லது அடையாளத்தின் மற்ற அத்தாட்சிகளின் ஒரு பிரதி, பாஸ்போர்ட் பாஸ்போர்ட் ஃபோட்டோ, ரத்த அட்டையின் ஒரு பிரதி, கிராம அதிகாரியிடமிருந்து வரும் ஒரு அறிவிப்பு, அல்லது அந்த விதவையின் விதவை/ Dodvocrade / devecidd / Prainture) மற்றும் இதற்கு ஆதரவளிக்கும் மற்ற ஆவணங்கள்.\n\nஆகவே இந்தத் திட்டம் ஓர் இலவச மின்சார ஓட்டோரிக்ஷாவை அளிக்கிறது.",
       "sources": [
         {
           "scheme_name": "Snehayanam Scheme For Mothers Of Persons With Special Needs",
@@ -137,14 +158,14 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 43.978,
+      "response_time_s": 13.409,
       "error": null
     },
     {
       "id": 7,
       "category": "scheme_search",
       "query": "Explain the Airavata Scheme for taxi drivers in Karnataka",
-      "answer": "The Airavata Scheme is a Karnataka government initiative aimed at promoting self‑employment among rural youth, especially those belonging to Scheduled Caste (SC) and Scheduled Tribe (ST) communities, through cab transport ventures such as Radio Taxi, in partnership with corporate aggregators like OLA and UBER. The scheme offers a subsidy of Rs. 5 lakh to beneficiaries for the purchase of a light motor vehicle, thereby reducing the burden of loan EMIs and helping them generate revenue. The government intends to cover around 1,000 SC/ST taxi drivers under this scheme. Eligible applicants must belong to the SC community, be residents of Karnataka, be over 21 years old, possess a valid driving licence and cab badge, and have a family annual income not exceeding Rs. 5 lakh. Required documents include an Aadhar card, bonafide certificate, PAN card, ration card, passport‑size photograph, category certificate, age proof certificate, and a valid mobile number. The application process involves visiting the official scheme website, completing the online form, and submitting the required documents.",
+      "answer": "The Airavata Scheme is a Karnataka state initiative aimed at creating self‑employment opportunities for rural youth belonging to SC/ST communities by facilitating a partnership with corporate aggregators such as OLA and UBER. Under the scheme, beneficiaries receive training, mentoring and a government subsidy of up to Rs. 5 lakh to purchase a light motor vehicle, which they can use as a Radio Taxi. The subsidy is intended to reduce the burden of vehicle EMIs and help the driver generate income. The Karnataka government plans to support around 1,000 SC/ST taxi drivers and has earmarked about Rs. 225 crore for the programme. Applicants must be SC/ST residents of Karnataka, over 21 years old, hold a valid driving licence and a cab badge, and have a family annual income not exceeding Rs. 5 lakh. They must also not have previously received a subsidy exceeding Rs. 1 lakh from the state or the corporation. The scheme does not cover drivers who intend to work exclusively on Ola or Uber. The government covers half of the vehicle cost (50% subsidy), while the remaining amount must be arranged by the applicant. This programme is designed to empower rural SC/ST youth and provide a pathway to sustainable, self‑dependent livelihoods through the taxi industry.",
       "sources": [
         {
           "scheme_name": "Airavata Scheme",
@@ -169,14 +190,14 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 2.809,
+      "response_time_s": 2.419,
       "error": null
     },
     {
       "id": 8,
       "category": "scheme_search",
       "query": "What benefits does the Accidental Death Assistance for Construction Workers scheme provide in Delhi?",
-      "answer": "The Accidental Death Assistance for the Construction Workers scheme, administered by the Delhi Building and Other Construction Workers Welfare Board, Labour Department, Delhi, provides a compensation of ₹2,00,000 to the nominees or dependents of a registered worker when the worker dies due to an accident during the course of employment.",
+      "answer": "The \"Accidental Death Assistance for the Construction Workers\" scheme provides a benefit of ₹2,00,000 to the nominees or dependents of a registered worker if the worker dies due to an accident while employed, as stated in the scheme’s description.",
       "sources": [
         {
           "scheme_name": "Accidental Death Assistance for the Construction Workers",
@@ -201,7 +222,7 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 3.343,
+      "response_time_s": 1.569,
       "error": null
     },
     {
@@ -212,14 +233,14 @@
       "sources": [],
       "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 2.977,
+      "response_time_s": 1.915,
       "error": null
     },
     {
       "id": 10,
       "category": "scheme_search",
       "query": "Which scheme helps destitute widows in Kerala?",
-      "answer": "The Abhayakiranam Scheme is a programme launched by the Department of Social Justice, Government of Kerala, designed specifically to help destitute widows by providing them with a safe and better living environment and monthly financial support to their close relatives who provide protection and shelter.",
+      "answer": "The Abhayakiranam Scheme- is designed to support destitute widows in Kerala.",
       "sources": [
         {
           "scheme_name": "Abhayakiranam Scheme-",
@@ -244,7 +265,7 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 3.227,
+      "response_time_s": 1.48,
       "error": null
     },
     {
@@ -255,7 +276,7 @@
       "sources": [],
       "confidence": "medium",
       "intent": "eligibility_check",
-      "response_time_s": 0.845,
+      "response_time_s": 0.007,
       "error": null
     },
     {
@@ -266,7 +287,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.01,
+      "response_time_s": 0.008,
       "error": null
     },
     {
@@ -277,7 +298,7 @@
       "sources": [],
       "confidence": "medium",
       "intent": "eligibility_check",
-      "response_time_s": 0.006,
+      "response_time_s": 0.003,
       "error": null
     },
     {
@@ -288,7 +309,7 @@
       "sources": [],
       "confidence": "medium",
       "intent": "eligibility_check",
-      "response_time_s": 0.023,
+      "response_time_s": 0.004,
       "error": null
     },
     {
@@ -299,7 +320,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.481,
+      "response_time_s": 0.224,
       "error": null
     },
     {
@@ -310,7 +331,7 @@
       "sources": [],
       "confidence": "medium",
       "intent": "eligibility_check",
-      "response_time_s": 0.005,
+      "response_time_s": 0.003,
       "error": null
     },
     {
@@ -321,7 +342,7 @@
       "sources": [],
       "confidence": "medium",
       "intent": "eligibility_check",
-      "response_time_s": 0.008,
+      "response_time_s": 0.002,
       "error": null
     },
     {
@@ -332,7 +353,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 3.585,
+      "response_time_s": 0.641,
       "error": null
     },
     {
@@ -343,7 +364,7 @@
       "sources": [],
       "confidence": "medium",
       "intent": "eligibility_check",
-      "response_time_s": 0.014,
+      "response_time_s": 0.003,
       "error": null
     },
     {
@@ -361,7 +382,7 @@
       "id": 21,
       "category": "benefits_documents",
       "query": "What documents are required to apply for Atal Pension Yojana?",
-      "answer": "For the Atal Pension Yojana, the documents required are the KYC details, which are fetched from an active Bank or Post Office savings account. The scheme’s eligibility and application steps refer to this requirement as the sole document needed at the time of application.",
+      "answer": "To apply for the Atal Pension Yojana, the scheme uses the KYC details that are fetched from an active bank or post office savings account.",
       "sources": [
         {
           "scheme_name": "Atal Pension Yojana",
@@ -386,25 +407,46 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 6.502,
+      "response_time_s": 5.946,
       "error": null
     },
     {
       "id": 22,
       "category": "benefits_documents",
       "query": "What is the benefit amount under the Assam Arogya Nidhi Scheme?",
-      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
-      "sources": [],
-      "confidence": "low",
+      "answer": "The Assam Arogya Nidhi Scheme provides a maximum benefit of ₹3.00 lakh per beneficiary.",
+      "sources": [
+        {
+          "scheme_name": "Assam Arogya Nidhi Scheme",
+          "section": "eligibility",
+          "source_file": "aan copy.json"
+        },
+        {
+          "scheme_name": "Atal Amrit Abhiyan Scheme",
+          "section": "eligibility",
+          "source_file": "aaas-assam copy.json"
+        },
+        {
+          "scheme_name": "Assam Orunodoi Scheme",
+          "section": "eligibility",
+          "source_file": "aos copy.json"
+        },
+        {
+          "scheme_name": "Mukhya Mantri Krishi Sa Sajuli Yozana - Assam",
+          "section": "eligibility",
+          "source_file": "mmkssy-assam.json"
+        }
+      ],
+      "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 3.158,
+      "response_time_s": 1.608,
       "error": null
     },
     {
       "id": 23,
       "category": "benefits_documents",
       "query": "How much subsidy do I get under the Airavata Scheme?",
-      "answer": "Under the Airavata Scheme, beneficiaries receive a subsidy of up to Rs. 5,00,000 (i.e., 5 lakh rupees) for purchasing a light motor vehicle.",
+      "answer": "Under the Airavata Scheme, the subsidy offered to beneficiaries is Rs. 5,00,000 for the purchase of a light motor vehicle.",
       "sources": [
         {
           "scheme_name": "Airavata Scheme",
@@ -429,25 +471,46 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 3.05,
+      "response_time_s": 2.249,
       "error": null
     },
     {
       "id": 24,
       "category": "benefits_documents",
       "query": "What documents do I need for the Amma Two Wheeler Scheme?",
-      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
-      "sources": [],
-      "confidence": "low",
+      "answer": "For the Amma Two Wheeler Scheme for Working Women, applicants must provide proof of age (date of birth), proof of residence (such as EPIC card, driving licence, Aadhaar card, utility bills, etc., in the applicant’s name), and a valid driving licence or Learner License Registration (LLR) issued by the competent authority.",
+      "sources": [
+        {
+          "scheme_name": "Amma Two Wheeler Scheme for Working Women",
+          "section": "description",
+          "source_file": "atwsfww copy.json"
+        },
+        {
+          "scheme_name": "Moovalur Ramamirtham Ammaiyar Ninaivu Marriage Assistance Scheme-1",
+          "section": "application",
+          "source_file": "mranmas1.json"
+        },
+        {
+          "scheme_name": "Go Green Scheme- Gujarat Labour Welfare Board",
+          "section": "eligibility",
+          "source_file": "ggs-glwb.json"
+        },
+        {
+          "scheme_name": "Aamar Dukan On Wheels",
+          "section": "description",
+          "source_file": "adow copy.json"
+        }
+      ],
+      "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 4.03,
+      "response_time_s": 2.805,
       "error": null
     },
     {
       "id": 25,
       "category": "benefits_documents",
       "query": "असम अरोग्य निधि योजना के तहत क्या लाभ मिलता है?",
-      "answer": "असम आरोग्य निधि योजना के तहत, लाभार्थियों को प्राकृतिक और मानव निर्मित आपदाओं के कारण जीवन-धमकाने वाली बीमारियों और चोटों के लिए सामान्य और विशेष उपचार प्राप्त होता है। योग्य स्थितियों में हृदय रोग और हृदय शल्य चिकित्सा, कैंसर, गुर्दे और मूत्र रोगों, आर्थोपेडिक समस्याओं, थैलेसीमिया, अस्थि मज्जा प्रत्यारोपण, एड्स, और पुरानी मानसिक बीमारी में शल्य चिकित्सा उपचार की आवश्यकता होती है। राज्य सरकार स्वीकृत निधि का 50% योगदान करती है और मुख्यमंत्री योजना के प्रावधानों के अनुसार अतिरिक्त सहायता प्रदान कर सकते हैं।",
+      "answer": "असम आरोग्य निधि योजना के तहत, लाभार्थियों को जीवन के लिए सामान्य और विशेष उपचार के साथ-साथ प्राकृतिक या मानव निर्मित आपदाओं के कारण चोटों के लिए वित्तीय सहायता मिलती है। इस योजना में हृदय रोग और हृदय शल्य चिकित्सा, कैंसर, गुर्दे और मूत्र रोगों, आर्थोपेडिक समस्याओं, थैलेसीमिया, अस्थि मज्जा प्रत्यारोपण, एड्स, और पुरानी मानसिक बीमारी जैसे स्थितियों को शामिल किया गया है जो शल्य चिकित्सा उपचार की आवश्यकता होती है। प्रति मामले में ₹3.00 लाख तक का अधिकतम लाभ प्रदान किया जा सकता है, इस योजना में राज्य सरकार द्वारा स्वीकृत धनराशि का 50% योगदान दिया गया है। अनुदान अनुमोदन सीधे मुख्यमंत्री द्वारा पूरी राशि के लिए किया जा सकता है, चयन समिति के अध्यक्ष द्वारा ₹2.00 लाख तक की राशि के लिए और ₹2.00 लाख और ₹3.00 लाख के बीच सहायता के लिए राज्य स्तरीय समिति द्वारा। डिस्बर्समेंट को सीधे लाभार्थी या बैंक हस्तांतरण के माध्यम से अस्पताल में भर्ती कराया जाता है, और उपचार सभी सरकारी अस्पतालों, मेडिकल कॉलेजों, तृतीयक स्वास्थ्य देखभाल सुविधाओं और नैदानिक स्थापना अधिनियम के तहत पंजीकृत प्रतिष्ठित निजी अस्पतालों में स्वीकार्य है।",
       "sources": [
         {
           "scheme_name": "Assam Arogya Nidhi Scheme",
@@ -472,7 +535,7 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 8.989,
+      "response_time_s": 6.772,
       "error": null
     },
     {
@@ -483,14 +546,14 @@
       "sources": [],
       "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 10.365,
+      "response_time_s": 5.557,
       "error": null
     },
     {
       "id": 27,
       "category": "benefits_documents",
       "query": "What is the process to apply for Accidental Death Assistance for Construction Workers?",
-      "answer": "The application procedure differs across state‑specific schemes. Below is a summary of the steps as listed in the retrieved content:\n\n**Delhi – Accidental Death Assistance for the Construction Workers** (Delhi Building and Other Construction Workers Welfare Board):\nStep 6: Add your Bank Account details.\nStep 7: Upload Aadhaar Card, Address Proof, Birth Proof, Employment Proof, Bank Account details, etc.\nStep 8: Verify the “Affidavit of the Applicant” and check the box.\nStep 9: Proceed to pay the online registration fee of ₹25/– via Debit Card/Internet Banking/UPI.\nStep 10: Enter the OTP received on your registered mobile number and submit.\n\n**Gujarat – Accidental Death Assistance Scheme (GBOCWWB)** (Gujarat Building and Other Construction Worker’s Welfare Board):\nStep 01: The applicant may visit the S… (complete details not provided in the content).\n\n**Puducherry – Accidental Death Benefit Scheme (PBAOCWWB)** (Puducherry Building and Other Construction Workers Welfare Board):\nStep 2: Fill in all mandatory fields, attach passport‑sized photograph (signed across, if required), and include copies of all mandatory documents.\nStep 3: The nominee of the deceased submits the duly filled and signed application form along with required documents.\n\n**Rajasthan – Assistance Scheme For Construction Worker In Case Of General Or Accidental Death Or Injury** (Rajasthan Construction Workers Welfare Board):\nThe application steps are mentioned as “Application steps: In…”, but the complete process is not detailed in the provided content.\n\nThese steps represent the information available for each state scheme. If you need a detailed, step‑by‑step guide for a specific state, please consult the official portal of that state’s construction workers welfare board.",
+      "answer": "To apply for the Accidental Death Assistance for the Construction Workers scheme, you need to follow these steps:\n\n1. Visit the Delhi Building and Other Construction Workers Welfare Board (DBo CWWB) website and click “Register Now.”\n2. Provide the mandatory details such as Aadhaar Card Number, name as per Aadhaar, mobile number, date of birth, gender, etc., create a password and complete the registration.\n3. After registration, log in using your Aadhaar number (or registration card/OTP) and select the “Death Assistance” option.\n4. Fill out the application form with the required information and upload the necessary documents (original death certificate, nominee’s Aadhaar card, bank passbook or cancelled cheque, FIR/MLC report, etc.).\n5. In the subsequent screens, add your bank account details and upload supporting documents like Aadhaar, address proof, birth proof, employment proof, and the affidavit of the applicant.\n6. Pay the online registration fee of ₹25 via debit card, internet banking, or UPI.\n7. Enter the OTP received on your registered mobile number to confirm the submission.\n8. Note down the application number for future reference and download the acknowledgment receipt.\n9. You can track the status of your application by visiting the homepage and clicking “Track Your Application.”\n\nThese steps are outlined in the Accidental Death Assistance for the Construction Workers scheme information.",
       "sources": [
         {
           "scheme_name": "Accidental Death Assistance Scheme (GBOCWWB)",
@@ -515,7 +578,7 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 4.399,
+      "response_time_s": 9.652,
       "error": null
     },
     {
@@ -526,14 +589,14 @@
       "sources": [],
       "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 2.404,
+      "response_time_s": 2.855,
       "error": null
     },
     {
       "id": 29,
       "category": "benefits_documents",
       "query": "What identity proof documents are accepted for the Bina Mulya Samajik Suraksha Yojana?",
-      "answer": "For the Bina Mulya Samajik Suraksha Yojana, the accepted identity proof documents are the Aadhar Card, Voter ID Card (also referred to as EPIC – Electors Photo Identity Card). These documents are listed under the required documents for the scheme.",
+      "answer": "For the Bina Mulya Samajik Suraksha Yojana, the following identity proof documents are accepted: Photo (mandatory), Signature(mandatory), Aadhar Card/Voter ID Card, Epic Document, and Bank Passbook (mandatory). In the absence of an Aadhaar Card, alternative documents such as bank passbook, PAN card, or ration card can be submitted. A voter identity card is also accepted as an alternative to an Aadhaar Card.",
       "sources": [
         {
           "scheme_name": "Bina Mulya Samajik Suraksha Yojana",
@@ -558,14 +621,14 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 2.851,
+      "response_time_s": 110.291,
       "error": null
     },
     {
       "id": 30,
       "category": "benefits_documents",
       "query": "How much financial assistance does the Abhayakiranam Scheme provide monthly?",
-      "answer": "The Abhayakiranam Scheme provides monthly financial assistance of ₹1,000 per person. This amount was initially sanctioned for 200 destitute widows for a period of 6 months.",
+      "answer": "The Abhayakiranam Scheme provides financial assistance of ₹1,000 per month to the close relatives of destitute widows who provide protection and shelter to them.",
       "sources": [
         {
           "scheme_name": "Abhayakiranam Scheme-",
@@ -590,7 +653,7 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 3.571,
+      "response_time_s": 4.215,
       "error": null
     },
     {
@@ -601,7 +664,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.006,
+      "response_time_s": 0.008,
       "error": null
     },
     {
@@ -623,7 +686,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.005,
+      "response_time_s": 0.006,
       "error": null
     },
     {
@@ -634,7 +697,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.011,
+      "response_time_s": 0.009,
       "error": null
     },
     {
@@ -645,7 +708,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 5.33,
+      "response_time_s": 2.338,
       "error": null
     },
     {
@@ -656,7 +719,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.02,
+      "response_time_s": 0.01,
       "error": null
     },
     {
@@ -667,7 +730,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 1.346,
+      "response_time_s": 0.606,
       "error": null
     },
     {
@@ -678,7 +741,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 9.064,
+      "response_time_s": 6.332,
       "error": null
     },
     {
@@ -689,7 +752,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.024,
+      "response_time_s": 0.014,
       "error": null
     },
     {
@@ -700,7 +763,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.015,
+      "response_time_s": 0.017,
       "error": null
     },
     {
@@ -711,7 +774,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.004,
+      "response_time_s": 0.005,
       "error": null
     },
     {
@@ -722,7 +785,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.033,
+      "response_time_s": 0.037,
       "error": null
     },
     {
@@ -740,32 +803,11 @@
       "id": 44,
       "category": "edge_case",
       "query": "Atal Pention Yojna",
-      "answer": "The Atal Pension Yojana (APY) is an old age income security scheme aimed at workers in the unorganized sector who are not income‑tax payees. It encourages voluntary savings for retirement.  The scheme targets the poor and under‑privileged, offering a guaranteed minimum pension after age 60.  Subscribers aged 18–40 years can join and contribute through an auto‑debit facility from their bank or post office savings account.  Upon reaching the age of 60, the subscriber will receive a guaranteed minimum monthly pension of Rs. 1,000, Rs. 2,000, Rs. 3,000, Rs. 4,000 or Rs. 5,000, depending on their contribution, until death.  Key eligibility conditions include a minimum joining age of 18 and maximum of 40, and an exit age of 60.  Required documents typically include KYC details fetched from an active bank or post office savings account.  Applications can be opened online via net banking or processed at a savings bank branch, with the account opening and contribution handled through the bank’s auto‑debit facility.  (Source: Atal Pension Yojana scheme description.)",
-      "sources": [
-        {
-          "scheme_name": "Atal Sneh Yojana",
-          "section": "eligibility",
-          "source_file": "asyg copy.json"
-        },
-        {
-          "scheme_name": "Atal Pension Yojana",
-          "section": "application",
-          "source_file": "apy copy.json"
-        },
-        {
-          "scheme_name": "Kisan Pension Yojana",
-          "section": "eligibility",
-          "source_file": "kpy.json"
-        },
-        {
-          "scheme_name": "Atal Awasiya Vidyala Yojana",
-          "section": "description",
-          "source_file": "aavy copy.json"
-        }
-      ],
-      "confidence": "high",
+      "answer": "I don't have reliable information on this. Please check the official MyScheme portal at myscheme.gov.in",
+      "sources": [],
+      "confidence": "low",
       "intent": "scheme_search",
-      "response_time_s": 4.688,
+      "response_time_s": 2.545,
       "error": null
     },
     {
@@ -776,7 +818,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.021,
+      "response_time_s": 0.018,
       "error": null
     },
     {
@@ -787,7 +829,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.021,
+      "response_time_s": 0.015,
       "error": null
     },
     {
@@ -798,7 +840,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.01,
+      "response_time_s": 0.005,
       "error": null
     },
     {
@@ -809,14 +851,14 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.011,
+      "response_time_s": 0.007,
       "error": null
     },
     {
       "id": 49,
       "category": "edge_case",
       "query": "योजना",
-      "answer": "The retrieved information lists four government schemes:\n\n1. **Thalolam Scheme** – Launched by Kerala’s Social Justice Department on 1 January 2010 under the Kerala Social Security Mission. It provides free treatment to children under 18 with serious health conditions such as kidney disease, cardiovascular disease, cerebral palsy, brittle bone disease, hemophilia, thalassemia, sickle‑cell anaemia, orthopedic deformities and other neuro‑developmental disabilities. Eligible patients receive an initial assistance of ₹50,000 and must be Kerala residents, below 18 years of age, and belong to Below‑Poverty‑Line (BPL) families.\n\n2. **Cancer Suraksha Scheme** – Launched on 1 November 2008 for children under 18 who suffer from cancer and belong to families too poor to afford treatment. It is also under the Kerala Social Security Mission. Eligible children receive free treatment (including investigations) up to a ceiling of ₹50,000 per child at designated government hospitals. Applicants must be Kerala residents, BPL, and under 18 years of age.\n\n3. **Abhayakiranam Scheme‑to Destitute Widows** – Implemented by the Department of Social Justice, Government of Kerala. It aims to provide a safe living environment for destitute and homeless widows. In its initial phase, the scheme provides a monthly assistance of ₹1,000 for six months to 200 eligible widows (age > 50, annual family income < ₹1,00,000, not receiving pension). Applicants must be Kerala residents and meet the specified income and age criteria.\n\n4. **Journalist Welfare Scheme** – A Ministry of Information and Broadcasting initiative offering one‑time ex‑gratia relief to journalists and their families in extreme hardship. Benefits include up to ₹5,00,000 for families in case of a journalist’s death, up to ₹5,00,000 for permanent disability, and up to ₹3,00,000 for treatment of major ailments such as cancer, renal failure, heart surgery, angioplasty, brain haemorrhage, etc., subject to certain conditions. Applicants must be Indian citizens, ordinarily residing in India, and be serving or retired journalists accredited to the Press Information Bureau (PIB).",
+      "answer": "The retrieved information contains details of four government schemes:\n\n1. **Thalolam Scheme** – Launched on 1 January 2010 under the Kerala Social Security Mission, this scheme provides free treatment to children under 18 with a range of serious conditions such as kidney disease, cardiovascular disease, cerebral palsy, thalassemia, sickle‑cell anemia, orthopedic deformities, neuro‑developmental disabilities, congenital anomalies (including Endosulfan victims) and accidents requiring surgery. Eligible patients receive an initial financial assistance of ₹50,000 and treatment at a list of government hospitals across Kerala. Applicants must be Kerala residents, below 18 years, and belong to Below‑Poverty‑Line (BPL) families.\n\n2. **Cancer Suraksha Scheme** – Initiated on 1 November 2008 for children under 18 who have cancer and belong to families too poor to afford treatment. Under this Kerala Social Security Mission scheme, eligible children receive completely free cancer treatment, including investigations, at designated government hospitals, with an initial expenditure ceiling of ₹50,000 per child. Eligibility requires Kerala residency, BPL status, and a cancer diagnosis.\n\n3. **Abhayakiranam Scheme‑to Destitute Widows** – Launched by the Department of Social Justice, Kerala, this scheme supports destitute and homeless widows. It provides a monthly assistance of ₹1,000 to close relatives who shelter the widows, for up to six months. Applicants must be Kerala residents, widows aged above 50 years, with an annual family income below ₹1,00,000, and must not be receiving any service or family pension.\n\n4. **Journalist Welfare Scheme** – A Ministry of Information and Broadcasting initiative offering one‑time ex‑gratia relief to journalists and their families in extreme hardship. Benefits include up to ₹5,00,000 for families on account of a journalist’s death, up to ₹5,00,000 for permanent disability, up to ₹3,00,000 for major medical treatments not covered by other schemes, and up to ₹2,00,000 for serious accident‑related injuries. The scheme applies to Indian citizens who are serving or retired journalists accredited to the Press Information Bureau (PIB).",
       "sources": [
         {
           "scheme_name": "Thalolam Scheme",
@@ -841,7 +883,7 @@
       ],
       "confidence": "high",
       "intent": "scheme_search",
-      "response_time_s": 3.985,
+      "response_time_s": 3.773,
       "error": null
     },
     {
@@ -852,7 +894,7 @@
       "sources": [],
       "confidence": "low",
       "intent": "out_of_scope",
-      "response_time_s": 0.032,
+      "response_time_s": 0.021,
       "error": null
     }
   ],

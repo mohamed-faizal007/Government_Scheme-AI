@@ -2,16 +2,18 @@
 
 ## What each change did (summary table)
 
-| Metric | 1. 488 schemes (2026-10-10) | 2. 2,066, before token budget | 3. + token budget (14-id subset only) | 4. + cleanup (descriptions, 73 names, router): regression | 5. + skip content-free description chunks | 6. + citation-guard fix + tighter Romanized-Hindi patterns (current) |
-|---|---|---|---|---|---|---|
-| Out-of-scope declined | 80% (8/10) | 100% (10/10), 2 only by request failure | 10/10; q35, q38 by the guard | 100% (10/10): 8 router, 2 guard | 100% (10/10): 8 router, 2 guard | **100% (10/10): 8 router (31-34, 36, 37, 39, 40), 2 citation guard (35, 38)** |
-| Source citation rate | 30% (15/50) | 26% (13/50) | 14.3% of the 14 ids (not comparable) | 16% (8/50) | 26% (13/50) | **28% (14/50)** |
-| Retrieval spot-check (top 5) | 70% (7/10) | 70% (7/10) | not run | 60% (6/10), q1 misses | 70% (7/10) | **70% (7/10)** |
-| Average response time | 28.9s | 11.2s | 1.7s (14 ids) | 2.1s | 2.5s | **3.7s** |
-| Groq 413 failures | n/a | 5 | 0 | 0 | 0 | **0** |
-| Answers per model (log selections) | 20b + Ollama (11 queries via Ollama) | 20b 9, 120b 6, Ollama 4 | 20b only | 20b 16, 120b 7, Ollama 0 | 20b 19, 120b 4, Ollama 0 | **20b 21, 120b 3, Ollama 0** |
-| Eligibility accuracy | 95% (19/20) | 95% (19/20) | n/a | 95% (19/20) | 95% (19/20) | **95% (19/20)** |
-| MongoDB docs / Chroma chunks | 488 / 1,952 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 7,528 | **2,066 / 7,528** |
+| Metric | 1. 488 schemes (2026-10-10) | 2. 2,066, before token budget | 3. + token budget (14-id subset only) | 4. + cleanup (descriptions, 73 names, router): regression | 5. + skip content-free description chunks | 6. + citation-guard fix + tighter Romanized-Hindi patterns (current) | 7. + exact-name prompt line + 2,500-character cap |
+|---|---|---|---|---|---|---|---|
+| Out-of-scope declined | 80% (8/10) | 100% (10/10), 2 only by request failure | 10/10; q35, q38 by the guard | 100% (10/10): 8 router, 2 guard | 100% (10/10): 8 router, 2 guard | **100% (10/10): 8 router (31-34, 36, 37, 39, 40), 2 citation guard (35, 38)** | **10/10: 8 router, 2 citation guard (35, 38)** |
+| Source citation rate | 30% (15/50) | 26% (13/50) | 14.3% of the 14 ids (not comparable) | 16% (8/50) | 26% (13/50) | **28% (14/50)** | **32% (16/50)** |
+| Retrieval spot-check (top 5) | 70% (7/10) | 70% (7/10) | not run | 60% (6/10), q1 misses | 70% (7/10) | **70% (7/10)** | **70% (7/10)** |
+| Average response time | 28.9s | 11.2s | 1.7s (14 ids) | 2.1s | 2.5s | **3.7s** | **4.4s** (2.3s without q29, which took 110s on the Ollama fallback) |
+| Groq 413 failures | n/a | 5 | 0 | 0 | 0 | **0** | **0** |
+| Answers per model (log selections) | 20b + Ollama (11 queries via Ollama) | 20b 9, 120b 6, Ollama 4 | 20b only | 20b 16, 120b 7, Ollama 0 | 20b 19, 120b 4, Ollama 0 | **20b 21, 120b 3, Ollama 0** | **20b 13, 120b 10, Ollama 1** |
+| Eligibility accuracy | 95% (19/20) | 95% (19/20) | n/a | 95% (19/20) | 95% (19/20) | **95% (19/20)** | **95% (19/20)** |
+| MongoDB docs / Chroma chunks | 488 / 1,952 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 7,528 | **2,066 / 7,528** | **2,066 / 7,528** |
+
+Column 7 (kept, committed): one added line in the generator's system prompt ("Cite each scheme using its exact name as written in the context.") and `SCHEME_CHAR_CAP` raised from 1,500 to 2,500 characters (5,500-token prompt cap and 413 retry unchanged). Raw results: `eval_rag_results.json` (column 7), `eval_rag_results_before_experiment.json` (column 6). Largest request 4,093 Groq prompt tokens (was about 1,800), so there were more 429s (24 rate-limit events against 3), and one query (q29, "What identity proof documents ...") fell to Ollama and took 110s. Per-query: q3, q22 and q24 are now answered (4 sources each), q4 and q28 are still declined at low confidence (the model itself says "no reliable information"), q44 flipped from answered to declined (typo query, wording variance). Scheme/benefit queries still without sources: q4, q5, q9 (correct, not in the dataset), q26, q28. Paris: `names_scheme("The capital of France is Paris.", ...)` is False for "Atal Pension Yojana", "Dr. B." and "E."; q35 is declined by the citation guard with 0 sources.
 
 Column 3 is a subset because only the 14 affected ids were re-run after the token budget. Raw results: `eval_rag_results.json` (column 6), `eval_rag_results_before_guard_fix.json` (column 5), `eval_rag_results_after_cleanup.json` (column 4), `eval_rag_results_subset.json` (column 3), `eval_rag_results_before_token_budget.json` (column 2); column 1 is in git history. Run-to-run differences of a query or two are model wording variance (the same query was answered in one run and declined in the next, e.g. q3, q22).
 

@@ -252,16 +252,18 @@ Evaluation harness: `chatbot/evaluation/`. Full detail in `EVAL_REPORT.md`. Late
 
 Six result columns (per-change effects and the open items in `EVAL_REPORT.md`):
 
-| Metric | 1. 488 schemes (10-10) | 2. 2,066, before token budget | 3. + token budget (14-id subset) | 4. + cleanup: regression | 5. + skip empty description chunks | 6. + guard fix + tighter Hindi patterns (current) |
-|---|---|---|---|---|---|---|
-| Eligibility accuracy | 95% | 95% | n/a | 95% | 95% | **95% (19/20)** |
-| Out-of-scope declined | 80% (8/10) | 100%, 2 by request failure | 10/10 | 10/10 (8 router, 2 guard) | 10/10 (8 router, 2 guard) | **10/10 (8 router, 2 citation guard)** |
-| Source citation rate | 30% | 26% | 14.3% of 14 ids | 16% | 26% | **28% (14/50)** |
-| Retrieval spot-check (top 5) | 70% | 70% | not run | 60% | 70% | **70% (7/10)** |
-| Average response time | 28.9s | 11.2s | 1.7s | 2.1s | 2.5s | **3.7s** |
-| Groq 413 failures | n/a | 5 | 0 | 0 | 0 | **0** |
-| Answers per model | 20b + Ollama | 20b 9, 120b 6, Ollama 4 | 20b only | 20b 16, 120b 7, Ollama 0 | 20b 19, 120b 4, Ollama 0 | **20b 21, 120b 3, Ollama 0** |
-| Mongo docs / Chroma chunks | 488 / 1,952 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 7,528 | **2,066 / 7,528** |
+| Metric | 1. 488 schemes (10-10) | 2. 2,066, before token budget | 3. + token budget (14-id subset) | 4. + cleanup: regression | 5. + skip empty description chunks | 6. + guard fix + tighter Hindi patterns (current) | 7. + exact-name prompt line + 2,500-character cap |
+|---|---|---|---|---|---|---|---|
+| Eligibility accuracy | 95% | 95% | n/a | 95% | 95% | **95% (19/20)** | **95% (19/20)** |
+| Out-of-scope declined | 80% (8/10) | 100%, 2 by request failure | 10/10 | 10/10 (8 router, 2 guard) | 10/10 (8 router, 2 guard) | **10/10 (8 router, 2 citation guard)** | **10/10: 8 router, 2 citation guard (35, 38)** |
+| Source citation rate | 30% | 26% | 14.3% of 14 ids | 16% | 26% | **28% (14/50)** | **32% (16/50)** |
+| Retrieval spot-check (top 5) | 70% | 70% | not run | 60% | 70% | **70% (7/10)** | **70% (7/10)** |
+| Average response time | 28.9s | 11.2s | 1.7s | 2.1s | 2.5s | **3.7s** | **4.4s** (2.3s without q29, which took 110s on the Ollama fallback) |
+| Groq 413 failures | n/a | 5 | 0 | 0 | 0 | **0** | **0** |
+| Answers per model | 20b + Ollama | 20b 9, 120b 6, Ollama 4 | 20b only | 20b 16, 120b 7, Ollama 0 | 20b 19, 120b 4, Ollama 0 | **20b 21, 120b 3, Ollama 0** | **20b 13, 120b 10, Ollama 1** |
+| Mongo docs / Chroma chunks | 488 / 1,952 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 8,264 | 2,066 / 7,528 | **2,066 / 7,528** | **2,066 / 7,528** |
+
+Column 7 (kept, committed): one added line in the generator's system prompt ("Cite each scheme using its exact name as written in the context.") and `SCHEME_CHAR_CAP` raised from 1,500 to 2,500 characters (5,500-token prompt cap and 413 retry unchanged). Raw results: `eval_rag_results.json` (column 7), `eval_rag_results_before_experiment.json` (column 6). Largest request 4,093 Groq prompt tokens (was about 1,800), so there were more 429s (24 rate-limit events against 3), and one query (q29, "What identity proof documents ...") fell to Ollama and took 110s. Per-query: q3, q22 and q24 are now answered (4 sources each), q4 and q28 are still declined at low confidence (the model itself says "no reliable information"), q44 flipped from answered to declined (typo query, wording variance). Scheme/benefit queries still without sources: q4, q5, q9 (correct, not in the dataset), q26, q28. Paris: `names_scheme("The capital of France is Paris.", ...)` is False for "Atal Pension Yojana", "Dr. B." and "E."; q35 is declined by the citation guard with 0 sources.
 
 Column 6 = token budget (per-scheme 1,500-character cap, 5,500-token prompt cap, 4 -> 3 -> 2 scheme retry on 413) + pop-up text stripped from all descriptions + 73 file-name scheme names recovered + content-free description chunks removed from Chroma + citation guard that normalises names (edge punctuation, Unicode hyphens/quotes, min 4 characters; `test_citation_guard.py`) + Romanized-Hindi `kya hai` / `batao` / `bataiye` / `ke baare mein` only with a scheme word. Differences of a query or two between runs are model wording variance.
 
@@ -285,7 +287,7 @@ Column 6 = token budget (per-scheme 1,500-character cap, 5,500-token prompt cap,
 - **13 schemes still have truncated scheme names** (`Dr. B.`, `E.`, `'`, `H.`, `J.`, `Meit`, `MMKY-`, ...), recoverable from the source PDFs like the 73 file-name ones were.
 - **732 schemes have an empty description** after the pop-up cleanup (the extraction only captured a header) and 4 more are under 40 characters; they have no description chunk in Chroma (deliberately), only benefits/eligibility/application. 67 other-section chunks are also content-free.
 - **The citation guard's exact-name match is brittle against model abbreviations** ("Amma Two Wheeler Scheme" for "... for Working Women", "Assam Arogya Nidhi (AAN) Scheme"): q3 and q24 decline at high confidence in some runs. The trailing-punctuation case (`Abhayakiranam Scheme-`) is fixed.
-- **The 1,500-character per-scheme cap drops most facts for long schemes** (q22, q28 decline at low confidence); about 3,000 characters would still fit the 5,500-token budget. Not changed.
+- **The per-scheme cap is now 2,500 characters (was 1,500).** Longer schemes are still truncated; raising it further risks the 5,500-token budget and more Groq 429s (24 rate-limit events in the column 7 run against 3). Partly mitigated, not solved: q4, q5, q26 and q28 are still open.
 - q6 (Tamil) now answers about a wrong scheme (Snehayanam) with sources; Tamil specific-scheme retrieval is still open.
 - The pop-up sentence also remains inside 84 `application`/`eligibility`/`benefits` chunks.
 

@@ -23,7 +23,7 @@ UNAVAILABLE_MESSAGE = (
 # Groq's free tier caps a single request at 8,000 tokens/min per model, so the prompt is
 # budgeted well under that: per-scheme text is capped, the whole prompt is capped, and a
 # "too large" rejection retries with fewer schemes.
-SCHEME_CHAR_CAP = 1500
+SCHEME_CHAR_CAP = 2500
 MAX_PROMPT_TOKENS = 5500
 CHARS_PER_TOKEN = 3  # conservative; English runs ~4 chars/token
 RETRY_SCHEME_COUNTS = (5, 3, 2)
@@ -52,6 +52,8 @@ which field it came from.
 - Always write the answer in English, regardless of what language the user's question is \
 written in. The question may be in Tamil, Hindi, or another language — always respond in \
 English; a separate translation step handles the user's language.
+
+- Cite each scheme using its exact name as written in the context.
 
 Respond with ONLY a JSON object, no other text, in exactly this shape:
 {"answer": "<your answer text>", "confidence": "high" | "medium" | "low"}

@@ -235,3 +235,7 @@ venv_old/
 
 # Scheme sync run logs
 chatbot/data/sync_logs/
+
+# Local backup archives
+test_output_unstructured_backup.zip
+test_output_unstructured_backup_full.zip

@@ -243,6 +243,9 @@ Note: `overview.description` is populated for 100% of files (orphan content capt
 - Tamil translation via Helsinki-NLP `opus-mt-dra-en` / `opus-mt-en-dra` (offline, no MSVC needed): en→ta output and ta→en retrieval; fallback chain Helsinki → Google → argostranslate → original query
 - Scheme names preserved in English in Tamil responses, with numbered-list and markdown preservation
 - `eval_rag.py` `--ids` and `--pause` flags (`--pause` default 3s between LLM calls)
+- Eligibility slot capture fix (2026-10-21): session `last_slot_asked` + `eligibility/slot_parser.py` interpret bare replies ("general", "30", "1.2 lakhs"); one re-ask with an example, then a skip offer, then auto-skip on the 3rd failure; "skip" accepted any time. Stray `*` stripped from translated answers. `eval_eligibility` still 95%.
+- Frontend redesign committed and pushed (9b66d37)
+- Eligibility lookup fix (2026-10-21): session `eligibility_query` holds the original question and drives the final search; topic swaps ("actually, for education") replace it, slot answers never do; no-topic questions search by profile (category/state) and say so. Top-3 retrieval can still include one weak hit.
 
 ---
 

@@ -4,6 +4,7 @@ Run: uvicorn chatbot.backend.api.main:app --reload --port 8000  (from repo root)
 import asyncio
 import hmac
 import logging
+import re
 import tempfile
 import uuid
 from contextlib import asynccontextmanager
@@ -22,7 +23,8 @@ from ..database.mongo_client import get_db, get_schemes_collection
 from ..documents.extractor import autofill_profile, extract_fields
 from ..documents.ocr import extract_text
 from ..eligibility.rules_engine import _is_junk, check_eligibility
-from ..eligibility.slot_filler import get_next_question
+from ..eligibility.slot_filler import QUESTIONS, get_next_slot
+from ..eligibility.slot_parser import EXAMPLES, is_skip, parse_slot_reply
 from ..eligibility.user_profile import UserProfile
 from ..rag.rag_chain import answer as rag_answer
 from ..retrieval.retriever import retrieve
@@ -99,6 +101,10 @@ def _new_session() -> dict:
         "last_active": datetime.now(timezone.utc),
         "last_intent": None,
         "last_bot_message_was_question": False,
+        "last_slot_asked": None,
+        "eligibility_query": None,
+        "slot_failures": {},
+        "skipped_slots": set(),
     }
 
 
@@ -194,23 +200,121 @@ def _is_translation_failed(original: str, translated: str, language: str) -> boo
         return True  # translate() silently returned the input
     return len(translated.split()) < 3  # too short to carry intent
 
+def _strip_stray_asterisks(text: str) -> str:
+    """Remove markdown '*' left unmatched by translation; balanced '**bold**' pairs are kept."""
+    out = []
+    for line in text.split("\n"):
+        bullet = re.match(r"^(\s*)[*]\s+(?=\S)", line)
+        prefix = f"{bullet.group(1)}- " if bullet else ""
+        body = line[bullet.end():] if bullet else line
+        pairs = re.findall(r"[*]{2}(?=[^*\s])[^*]+?(?<=[^*\s])[*]{2}", body)
+        parts = re.split(r"([*]{2}(?=[^*\s])[^*]+?(?<=[^*\s])[*]{2})", body)
+        body = "".join(p if p in pairs else p.replace("*", "") for p in parts)
+        out.append(prefix + body)
+    return "\n".join(out)
+
+
 def _apply_entities(profile: UserProfile, entities: dict) -> None:
     for entity_key, profile_field in ENTITY_TO_PROFILE_FIELD.items():
         if entity_key in entities:
             setattr(profile, profile_field, entities[entity_key])
 
 
-def _handle_eligibility(profile: UserProfile, message: str, language: str) -> dict:
-    next_question = get_next_question(profile)
-    if next_question is not None:
+MAX_SLOT_FAILURES = 3
+
+# "actually, for education" / "instead for health schemes": swaps the topic mid-flow.
+TOPIC_CHANGE_RE = re.compile(
+    r"^\s*(?:(?:actually|instead|rather)\b[\s,.:-]*for\s+\S|change(?: it)? to\s+\S)", re.IGNORECASE
+)
+_LEADING_FILLER_RE = re.compile(r"^\s*(?:actually|instead|rather|change(?: it)? to)\b[\s,.:-]*", re.IGNORECASE)
+# Words left after removing these mean the question names no topic ("Am I eligible for any scheme?").
+_TOPICLESS_RE = re.compile(
+    r"am i eligible|do i qualify|can i apply|check eligibility|eligible|for|any|a|an|the|my|me|i|am|to|"
+    r"government|govt|central|state|scheme|schemes|yojana|yojna|benefit|benefits|which|what|is|are|there|"
+    r"available|can|apply|qualify|get|anything|something|some|please|schemes?",
+    re.IGNORECASE,
+)
+NO_TOPIC_NOTE = (
+    "You didn't name a topic, so I searched for schemes matching your profile ({profile}) "
+    "instead of a specific area like housing or education."
+)
+
+
+def _topic_change_query(text: str) -> str:
+    stripped = _LEADING_FILLER_RE.sub("", text).strip(" ?.!")
+    return f"schemes {stripped}" if stripped.lower().startswith("for ") else stripped
+
+
+def _has_topic(question: str) -> bool:
+    if _is_non_latin_script(question):
+        return True  # cannot judge native-script wording; assume a topic
+    words = re.findall(r"[a-z]+", question.lower())
+    return any(not _TOPICLESS_RE.fullmatch(w) for w in words)
+
+
+def _profile_search_query(profile: UserProfile) -> tuple[str, str]:
+    """A generic query built from the profile, plus a readable description of what it used."""
+    category = {"sc": "SC", "st": "ST", "obc": "OBC", "general": "general category"}.get(
+        (profile.category or "").lower(), profile.category
+    )
+    query = "schemes" + (f" for {category}" if category else "") + (f" in {profile.state}" if profile.state else "")
+    used = ", ".join(x for x in (category, profile.state) if x) or "no details given"
+    return query, used
+
+
+def _slot_prompt(session: dict, slot: str) -> str:
+    """The question for `slot`, escalating: plain -> with an example -> with a skip offer."""
+    failures = session["slot_failures"].get(slot, 0)
+    question = QUESTIONS[slot]
+    if failures == 1:
+        return f"Sorry, I couldn't understand that. {question} ({EXAMPLES[slot]})"
+    if failures >= 2:
+        return (
+            f"I still couldn't read that. {question} ({EXAMPLES[slot]}). "
+            "Or reply \"skip\" and I'll continue without it."
+        )
+    return question
+
+
+def _fill_asked_slot(session: dict, profile: UserProfile, text: str) -> None:
+    """Interpret `text` as the reply to the slot the bot just asked; track failures and skips."""
+    slot = session.get("last_slot_asked")
+    if slot is None:
+        return
+    if is_skip(text):
+        session["skipped_slots"].add(slot)
+        return
+    value = parse_slot_reply(slot, text)
+    if value is not None:
+        setattr(profile, slot, value)
+    elif getattr(profile, slot) is None:  # entities from the full message may have filled it already
+        failures = session["slot_failures"].get(slot, 0) + 1
+        session["slot_failures"][slot] = failures
+        if failures >= MAX_SLOT_FAILURES:
+            session["skipped_slots"].add(slot)  # never loop forever
+
+
+def _handle_eligibility(profile: UserProfile, message: str, language: str, session: dict) -> dict:
+    slot = get_next_slot(profile, session["skipped_slots"])
+    session["last_slot_asked"] = slot
+    if slot is not None:
         return {
-            "answer": translate(next_question, source_lang="en", target_lang=language),
+            "answer": translate(_slot_prompt(session, slot), source_lang="en", target_lang=language),
             "sources": [],
             "confidence": "medium",
             "eligibility_results": [],
         }
 
-    candidates = retrieve(message, top_k=3)
+    # Search with the original question, not the last slot reply ("female"). Cleared once used.
+    stored_query = session.get("eligibility_query") or message
+    no_topic = not _has_topic(stored_query)
+    if no_topic:
+        search_query, used = _profile_search_query(profile)
+    else:
+        search_query = stored_query
+    session["eligibility_query"] = None
+    session["last_slot_asked"] = None
+    candidates = retrieve(search_query, top_k=3)
     if not candidates:
         return {
             "answer": translate(
@@ -265,6 +369,8 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str) -> di
             {"scheme_name": scheme_name, "section": "eligibility", "source_file": hit["source_file"]}
         )
 
+    if no_topic:
+        lines.insert(0, NO_TOPIC_NOTE.format(profile=used))
     answer_text = " ".join(lines)
     confidence = "medium" if any_unverifiable else "high"
 
@@ -361,10 +467,28 @@ def _process_message(message: str, session_id: Optional[str], language_override:
     # previous message was an eligibility slot-filling question, treat this
     # message as a continuation of that flow regardless of what the
     # classifier says.
-    if session.get("last_intent") == "eligibility_check" and session.get("last_bot_message_was_question"):
-        intent = "eligibility_check"
-
+    # The slot being asked is interpreted from the (English) reply; entities from the
+    # full sentence are applied first so "I am female" still fills gender.
     _apply_entities(profile, entities)
+    asked_slot = session.get("last_slot_asked")
+    topic_change = asked_slot is not None and bool(TOPIC_CHANGE_RE.match(classification_query))
+    if topic_change:
+        # "actually, for education" swaps the topic and keeps the flow; it is not a slot answer.
+        session["eligibility_query"] = _topic_change_query(classification_query)
+        intent = "eligibility_check"
+    elif asked_slot is not None and intent in ("out_of_scope", "eligibility_check"):
+        if intent == "eligibility_check":  # a fresh eligibility question replaces the stored one
+            session["eligibility_query"] = message
+            session["slot_failures"] = {}
+        else:
+            _fill_asked_slot(session, profile, classification_query)
+            intent = "eligibility_check"  # a bare "general" / "30" carries no intent of its own
+    elif intent == "eligibility_check":
+        session["eligibility_query"] = message
+        session["slot_failures"] = {}
+        session["skipped_slots"] = set()
+    elif session.get("last_intent") == "eligibility_check" and session.get("last_bot_message_was_question"):
+        intent = "eligibility_check"
 
     eligibility_results = []
     if intent == "scheme_search" or intent == "comparison":
@@ -372,7 +496,7 @@ def _process_message(message: str, session_id: Optional[str], language_override:
         result = rag_answer(message, language=language, system_prompt_suffix=suffix)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
     elif intent == "eligibility_check":
-        result = _handle_eligibility(profile, message, language)
+        result = _handle_eligibility(profile, message, language, session)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
         eligibility_results = result["eligibility_results"]
     elif intent == "document_upload":
@@ -382,6 +506,11 @@ def _process_message(message: str, session_id: Optional[str], language_override:
         answer_text = translate(OUT_OF_SCOPE_MESSAGE, source_lang="en", target_lang=language)
         sources, confidence = [], "low"
 
+    if language != "en":
+        answer_text = _strip_stray_asterisks(answer_text)
+
+    if intent != "eligibility_check":
+        session["last_slot_asked"] = None  # flow abandoned; don't hijack the next reply
     _add_sync_dates(sources)
 
     session["history"].append({"role": "user", "message": message})

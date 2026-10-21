@@ -14,11 +14,17 @@ QUESTIONS = {
 PRIORITY = ["age", "state", "income_annual", "category", "gender"]
 
 
-def get_next_question(profile: UserProfile) -> str | None:
+def get_next_slot(profile: UserProfile, skipped: set | None = None) -> str | None:
+    """First priority field that is empty and not skipped by the user."""
     for field in PRIORITY:
-        if getattr(profile, field) is None:
-            return QUESTIONS[field]
+        if getattr(profile, field) is None and field not in (skipped or ()):
+            return field
     return None
+
+
+def get_next_question(profile: UserProfile, skipped: set | None = None) -> str | None:
+    slot = get_next_slot(profile, skipped)
+    return QUESTIONS[slot] if slot else None
 
 
 if __name__ == "__main__":

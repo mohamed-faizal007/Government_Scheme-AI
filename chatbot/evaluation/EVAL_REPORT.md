@@ -93,6 +93,21 @@ Command: `eval_rag --ids 3,8,21,31,32,33,34,35,36,37,38,39,40,49 --pause 5` (res
 - The subset citation rate (14.3%) is not comparable to the full-run 26%; only q8 and q21 are scheme questions. A full 50-query re-run has not been done after the token budget.
 - Not fixed: q3 ("ke baare mein", Romanized Hindi) has no router pattern and stays `out_of_scope`.
 
+### Fixed: eligibility slot capture (2026-10-21)
+
+- **Bug:** a bare reply to a slot question ("general", "30", "Tamil Nadu") was not recorded, because the classifier only extracts entities from full sentences, so the same question repeated.
+- **Fix:** the session now tracks `last_slot_asked`; the next reply is parsed for that slot (`eligibility/slot_parser.py`: category incl. GEN / Scheduled Caste / other backward, any state or UT, bare age, `1.2 lakhs` / `120000` / `1,20,000`, gender). An unparseable reply re-asks once with an example, then offers "skip", and the third failure skips the field automatically, so the flow cannot loop. "skip" / "don't know" is accepted at any time.
+- **Verified end to end** (profile after each turn): general+female, "SC category"+"I am female", and an unparseable "banana" at the category turn all reach a final result; "skip" also works.
+- **Tamil answers:** stray unmatched markdown `*` are stripped (balanced `**bold**` kept).
+- `eval_eligibility.py` re-run: 19/20 = **95%**, unchanged. The 50-query RAG eval was not re-run (retrieval and generation untouched).
+
+### Fixed: eligibility lookup used the last reply as its query (2026-10-21)
+
+- **Bug:** the final scheme lookup searched with the last message (e.g. "female"), so a housing question returned women's science schemes.
+- **Fix:** the session stores the original question (`eligibility_query`) and the lookup uses it. It is replaced only by a new eligibility question or an explicit topic swap ("actually, for education"); slot answers never replace it. It is cleared after the lookup, when the flow is abandoned, and with a new session. A question with no topic ("any government scheme") searches `schemes for <category> in <state>` and the answer says so.
+- **Verified:** housing -> NIJASHAREE HOUSING SCHEME, Mukhyamantri Aawasiye Bhu-Adhikaar Yojana (+1 unrelated hit); education scholarship -> Nagaland State Merit Scholarship, Lakshadweep Scholarship Scheme (+1 weak hit); no-topic SC/Tamil Nadu -> Annal Ambedkar Business Champions Scheme, Unemployment Assistance Scheme - Tamil Nadu, with the no-topic note; mid-flow topic swap -> education schemes; a new session starts with an empty query.
+- `eval_eligibility.py`: 19/20 = **95%**, unchanged. RAG eval not re-run (retrieval/generation untouched).
+
 The sections below are the previous 488-scheme results, kept as history.
 
 ---

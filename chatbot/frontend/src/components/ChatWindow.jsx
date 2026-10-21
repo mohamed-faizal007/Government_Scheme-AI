@@ -1,61 +1,63 @@
 import { useEffect, useRef } from 'react'
-import MessageBubble from './MessageBubble'
+import Icon from './Icons'
+import MessageBubble, { SkeletonBubble, TypingIndicator } from './MessageBubble'
 import SchemeCard from './SchemeCard'
 
-const EXAMPLE_PROMPTS = [
-  {
-    icon: '🌾',
-    title: 'Schemes for farmers',
-    description: 'What schemes are available for farmers?',
-  },
-  {
-    icon: '🏠',
-    title: 'Housing subsidy',
-    description: 'Am I eligible for a housing subsidy?',
-  },
-  {
-    icon: '📄',
-    title: 'SC/ST documents',
-    description: 'What documents do I need for SC/ST schemes?',
-  },
+const SUGGESTIONS = [
+  { icon: 'sprout', title: 'Schemes for farmers', question: 'What schemes are available for farmers?' },
+  { icon: 'home', title: 'Housing subsidy', question: 'Am I eligible for a housing subsidy?' },
+  { icon: 'file', title: 'SC/ST documents', question: 'What documents do I need for SC/ST schemes?' },
 ]
 
-function TypingIndicator() {
+const MAX_CARDS = 4
+
+function SuggestionList({ onPick, compact }) {
   return (
-    <div className="flex items-start gap-2">
-      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-light text-base">
-        🏛️
-      </div>
-      <div className="flex items-center gap-1 rounded-2xl border-l-[3px] border-accent bg-surface px-4 py-3 shadow-card">
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
-        <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60" />
-      </div>
-    </div>
+    <ul className={`grid w-full gap-2 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-3'}`}>
+      {SUGGESTIONS.map((item) => (
+        <li key={item.title}>
+          <button
+            type="button"
+            onClick={() => onPick?.(item.question)}
+            className="flex h-full w-full items-start gap-2.5 rounded-xl border border-line bg-surface p-3 text-left shadow-card transition-colors hover:border-ink-faint hover:bg-surface-2"
+          >
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-ink">
+              <Icon name={item.icon} className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-ink">{item.title}</span>
+              <span className="block text-xs text-ink-muted">{item.question}</span>
+            </span>
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }
 
-function SchemeCards({ sources }) {
-  const unique = []
-  const seen = new Set()
+function SchemeCards({ sources, onViewDetails }) {
+  const byScheme = new Map()
   for (const source of sources || []) {
-    if (seen.has(source.scheme_name)) continue
-    seen.add(source.scheme_name)
-    unique.push(source)
+    const entry = byScheme.get(source.scheme_name) || { name: source.scheme_name, sections: [] }
+    if (source.section && !entry.sections.includes(source.section)) entry.sections.push(source.section)
+    byScheme.set(source.scheme_name, entry)
   }
-  if (unique.length === 0) return null
+  const entries = [...byScheme.values()].slice(0, MAX_CARDS)
+  if (entries.length === 0) return null
 
   return (
-    <div className="ml-10 grid grid-cols-1 gap-2 sm:grid-cols-2">
-      {unique.map((source, idx) => (
-        <SchemeCard
-          key={idx}
-          index={idx}
-          schemeName={source.scheme_name}
-          eligibilitySummary={source.section}
-          sourceFile={source.source_file}
-        />
-      ))}
+    <div className="ml-[2.625rem] mt-2">
+      <p className="mb-1.5 text-xs font-medium text-ink-muted">Schemes mentioned</p>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+        {entries.map((entry) => (
+          <SchemeCard
+            key={entry.name}
+            schemeName={entry.name}
+            sections={entry.sections}
+            onViewDetails={onViewDetails ? () => onViewDetails(`Tell me more about ${entry.name}`) : undefined}
+          />
+        ))}
+      </div>
     </div>
   )
 }
@@ -67,58 +69,70 @@ function precedingUserText(messages, index) {
   return ''
 }
 
-export default function ChatWindow({ messages, isTyping, onExampleClick, sessionId }) {
-  const bottomRef = useRef(null)
+export default function ChatWindow({
+  messages,
+  isTyping,
+  uploading = false,
+  onExampleClick,
+  onRetry,
+  sessionId,
+  compact = false,
+  indexOffset = 0,
+  label = 'Conversation',
+}) {
+  const scrollRef = useRef(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
+    const el = scrollRef.current
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+  }, [messages, isTyping, uploading])
+
+  const hasUserMessage = messages.some((m) => m.role === 'user')
 
   return (
-    <div className="flex-1 space-y-3 overflow-y-auto p-4">
-      {messages.length === 0 && !isTyping && (
-        <div className="flex h-full flex-col items-center justify-center gap-4 px-4 text-center">
-          <p className="text-sm text-text-secondary">
-            Ask about eligibility, benefits, or documents for any government scheme.
-          </p>
-          <div className="grid w-full max-w-2xl grid-cols-1 gap-3 sm:grid-cols-3">
-            {EXAMPLE_PROMPTS.map((prompt) => (
-              <button
-                key={prompt.title}
-                type="button"
-                onClick={() => onExampleClick?.(prompt.description)}
-                className="flex flex-col items-start gap-1 rounded-xl border border-border bg-surface p-3 text-left shadow-card transition-shadow hover:shadow-md"
-              >
-                <span className="text-xl">{prompt.icon}</span>
-                <span className="text-sm font-semibold text-text-primary">{prompt.title}</span>
-                <span className="text-xs text-text-secondary">{prompt.description}</span>
-              </button>
-            ))}
+    <div ref={scrollRef} className={`min-h-0 flex-1 overflow-y-auto ${compact ? 'px-3 py-4' : 'px-4 py-6'}`}>
+      <div className={`mx-auto flex min-h-full w-full flex-col gap-4 ${compact ? '' : 'max-w-3xl'}`}>
+        {messages.length === 0 && !isTyping && (
+          <div className="my-auto flex flex-col items-center gap-5 py-8 text-center">
+            <div>
+              <h2 className="text-xl font-bold text-ink">What would you like to know?</h2>
+              <p className="mt-1 text-sm text-ink-muted">
+                Ask about eligibility, benefits or documents for any scheme, in English, Hindi or Tamil.
+              </p>
+            </div>
+            <SuggestionList onPick={onExampleClick} />
           </div>
-        </div>
-      )}
+        )}
 
-      {messages.map((msg, index) => (
-        <div key={msg.id} className="space-y-2">
-          <MessageBubble
-            role={msg.role}
-            text={msg.text}
-            confidence={msg.confidence}
-            sources={msg.sources}
-            sessionId={sessionId}
-            messageIndex={index}
-            query={precedingUserText(messages, index)}
-            intent={msg.intent}
-          />
-          {msg.role === 'assistant' &&
-            (msg.intent === 'scheme_search' || msg.intent === 'comparison') && (
-              <SchemeCards sources={msg.sources} />
-            )}
+        <div role="log" aria-live="polite" aria-relevant="additions" aria-label={label} className="flex flex-col gap-4">
+          {messages.map((msg, index) => (
+            <div key={msg.id} className="flex flex-col">
+              <MessageBubble
+                message={msg}
+                sessionId={sessionId}
+                messageIndex={indexOffset + index}
+                query={precedingUserText(messages, index)}
+                compact={compact}
+                onRetry={msg.retryText && onRetry ? () => onRetry(msg.retryText, msg.id) : undefined}
+              />
+              {!compact &&
+                msg.role === 'assistant' &&
+                (msg.intent === 'scheme_search' || msg.intent === 'comparison') &&
+                msg.confidence !== 'low' && <SchemeCards sources={msg.sources} onViewDetails={onExampleClick} />}
+            </div>
+          ))}
         </div>
-      ))}
 
-      {isTyping && <TypingIndicator />}
-      <div ref={bottomRef} />
+        {messages.length > 0 && !hasUserMessage && !isTyping && (
+          <div className="pl-[2.625rem]">
+            <p className="mb-2 text-xs font-medium text-ink-muted">Try asking</p>
+            <SuggestionList onPick={onExampleClick} compact />
+          </div>
+        )}
+
+        {isTyping && <TypingIndicator />}
+        {uploading && !isTyping && <SkeletonBubble />}
+      </div>
     </div>
   )
 }

@@ -1,10 +1,11 @@
 import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
 import { API_BASE } from '../utils/api'
+import Icon from './Icons'
 
 const OPTIONS = [
-  { rating: 'positive', icon: '👍', label: 'Helpful' },
-  { rating: 'negative', icon: '👎', label: 'Not helpful' },
+  { rating: 'positive', icon: 'thumbUp', label: 'Helpful' },
+  { rating: 'negative', icon: 'thumbDown', label: 'Not helpful' },
 ]
 
 export default function FeedbackButtons({ sessionId, messageIndex, query, intent }) {
@@ -19,7 +20,7 @@ export default function FeedbackButtons({ sessionId, messageIndex, query, intent
     setRating(value)
     setThanks(true)
     clearTimeout(timerRef.current)
-    timerRef.current = setTimeout(() => setThanks(false), 2000)
+    timerRef.current = setTimeout(() => setThanks(false), 2500)
     try {
       await axios.post(`${API_BASE}/feedback`, {
         session_id: sessionId,
@@ -36,8 +37,8 @@ export default function FeedbackButtons({ sessionId, messageIndex, query, intent
   }
 
   return (
-    <div className="relative mt-2 flex items-center gap-1.5">
-      <span className="text-[11px] text-text-secondary">Was this helpful?</span>
+    <div className="mt-3 flex items-center gap-2" role="group" aria-label="Rate this answer">
+      <span className="text-xs text-ink-muted">Was this helpful?</span>
       {OPTIONS.map((opt) => {
         const selected = rating === opt.rating
         return (
@@ -48,24 +49,19 @@ export default function FeedbackButtons({ sessionId, messageIndex, query, intent
             aria-pressed={selected}
             disabled={rating !== null}
             onClick={() => submit(opt.rating)}
-            className={`rounded-full border px-2 py-0.5 text-xs transition-colors ${
+            className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${
               selected
-                ? 'border-primary bg-primary text-white'
-                : 'border-border bg-bg hover:bg-primary-light disabled:opacity-40 disabled:hover:bg-bg'
+                ? 'border-brand bg-brand text-white'
+                : 'border-line bg-surface text-ink-muted hover:bg-brand-soft hover:text-ink disabled:opacity-40 disabled:hover:bg-surface'
             }`}
           >
-            {opt.icon}
+            <Icon name={opt.icon} className="h-4 w-4" />
           </button>
         )
       })}
-      {thanks && (
-        <span
-          role="status"
-          className="absolute -top-7 left-0 whitespace-nowrap rounded-md bg-text-primary px-2 py-1 text-[11px] text-white shadow-card"
-        >
-          Thanks for your feedback!
-        </span>
-      )}
+      <span role="status" className="text-xs font-medium text-success">
+        {thanks ? 'Thanks for your feedback' : ''}
+      </span>
     </div>
   )
 }

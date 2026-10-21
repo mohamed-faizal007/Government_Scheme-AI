@@ -1,75 +1,60 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ChatWindow from './ChatWindow'
+import Icon, { LogoMark } from './Icons'
 import InputBar from './InputBar'
 
-function CompactTypingIndicator() {
+// Widget feedback shares a session with the main chat, so offset its message
+// indexes to keep each (session, message_index) feedback record distinct.
+export const WIDGET_FEEDBACK_OFFSET = 10000
+
+function useIsDesktop() {
+  const query = '(min-width: 1024px)'
+  const [matches, setMatches] = useState(() => window.matchMedia(query).matches)
+  useEffect(() => {
+    const media = window.matchMedia(query)
+    const onChange = () => setMatches(media.matches)
+    media.addEventListener('change', onChange)
+    return () => media.removeEventListener('change', onChange)
+  }, [])
+  return matches
+}
+
+function IconButton({ label, icon, onClick }) {
   return (
-    <div className="flex items-center gap-1 rounded-2xl rounded-tl-sm border-l-2 border-accent bg-white px-3 py-2">
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.3s]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60 [animation-delay:-0.15s]" />
-      <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-primary/60" />
-    </div>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className="flex h-8 w-8 items-center justify-center rounded-lg text-on-hero-muted transition-colors hover:bg-white/10 hover:text-white"
+    >
+      <Icon name={icon} className="h-4 w-4" />
+    </button>
   )
 }
 
-function WidgetHeader({ onRefresh, onExpandToggle, onMinimize, onClose, expanded }) {
+function WidgetHeader({ connected, children }) {
   return (
-    <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-      <div className="flex items-center gap-2">
-        <span className="text-lg">🏛️</span>
-        <span className="font-display text-sm font-bold text-white">SchemeBot</span>
-        <span className="ml-1 flex items-center gap-1 text-xs text-green-400">
-          <span className="h-1.5 w-1.5 rounded-full bg-green-400" /> Online
-        </span>
+    <div className="flex items-center justify-between gap-2 bg-brand px-3.5 py-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <LogoMark className="h-8 w-8 shrink-0 rounded-lg" />
+        <div className="min-w-0 leading-tight">
+          <h2 className="text-sm font-bold text-white">SchemeBot</h2>
+          <p className="flex items-center gap-1.5 text-xs text-on-hero-muted" role="status">
+            <span className={`h-1.5 w-1.5 rounded-full ${connected ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+            {connected ? 'Connected' : 'Reconnecting…'}
+          </p>
+        </div>
       </div>
-      <div className="flex items-center gap-3 text-white/60">
-        <button
-          type="button"
-          onClick={onRefresh}
-          aria-label="New chat"
-          className="transition-colors hover:text-white"
-        >
-          ↺
-        </button>
-        {expanded ? (
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close fullscreen"
-            className="transition-colors hover:text-white"
-          >
-            ✕
-          </button>
-        ) : (
-          <>
-            <button
-              type="button"
-              onClick={onExpandToggle}
-              aria-label="Expand"
-              className="transition-colors hover:text-white"
-            >
-              ⛶
-            </button>
-            <button
-              type="button"
-              onClick={onMinimize}
-              aria-label="Minimize"
-              className="transition-colors hover:text-white"
-            >
-              —
-            </button>
-          </>
-        )}
-      </div>
+      <div className="flex items-center gap-0.5">{children}</div>
     </div>
   )
 }
 
 export default function HeroChatWidget({
   messages,
-  input,
-  onInputChange,
   onSend,
+  onRetry,
   typing,
   minimized,
   onMinimize,
@@ -79,135 +64,128 @@ export default function HeroChatWidget({
   onCollapseExpand,
   onRefresh,
   onFileSelect,
-  language,
   connected,
+  sessionId,
+  uploading,
 }) {
-  const messagesContainerRef = useRef(null)
-  const inputRef = useRef(null)
+  const isDesktop = useIsDesktop()
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const containerRef = useRef(null)
+
+  const fullscreen = isDesktop ? expanded : mobileOpen
+  const closeFullscreen = isDesktop ? onCollapseExpand : () => setMobileOpen(false)
 
   useEffect(() => {
-    const container = messagesContainerRef.current
-    if (!container) return
-    container.scrollTop = container.scrollHeight
-  }, [messages, typing])
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      onSend(input)
+    if (!fullscreen) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeFullscreen()
     }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  })
+
+  useEffect(() => {
+    if (fullscreen) containerRef.current?.querySelector('textarea')?.focus()
+  }, [fullscreen])
+
+  // Lock page scroll behind the full-screen chat.
+  useEffect(() => {
+    if (!fullscreen) return undefined
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [fullscreen])
+
+  if (!isDesktop && !mobileOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setMobileOpen(true)}
+        className="fixed bottom-4 right-4 z-40 flex items-center gap-2 rounded-full bg-accent px-4 py-3 text-sm font-semibold text-white shadow-float transition-colors hover:bg-accent-hover"
+      >
+        <Icon name="chat" className="h-5 w-5" /> Ask SchemeBot
+      </button>
+    )
   }
 
-  if (minimized) {
+  if (isDesktop && minimized) {
     return (
       <button
         type="button"
         onClick={onRestore}
         aria-label="Open chat"
-        className="fixed bottom-6 right-6 z-40 hidden h-14 w-14 items-center justify-center rounded-full text-2xl text-white shadow-2xl transition-transform hover:scale-105 lg:flex"
-        style={{ backgroundColor: '#E94560' }}
+        className="fixed bottom-6 right-6 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-float transition-transform hover:scale-105"
       >
-        🏛️
+        <Icon name="chat" className="h-6 w-6" />
       </button>
     )
   }
 
-  if (expanded) {
+  const body = (
+    <>
+      <WidgetHeader connected={connected}>
+        <IconButton label="Start a new chat" icon="refresh" onClick={onRefresh} />
+        {fullscreen ? (
+          <IconButton label="Close full-screen chat" icon="close" onClick={closeFullscreen} />
+        ) : (
+          <>
+            <IconButton label="Expand chat" icon="expand" onClick={onExpand} />
+            <IconButton label="Minimize chat" icon="minimize" onClick={onMinimize} />
+          </>
+        )}
+      </WidgetHeader>
+      <div className="flex min-h-0 flex-1 flex-col bg-bg">
+        <ChatWindow
+          messages={messages}
+          isTyping={typing}
+          uploading={uploading}
+          onExampleClick={onSend}
+          onRetry={onRetry}
+          sessionId={sessionId}
+          compact={!fullscreen}
+          indexOffset={WIDGET_FEEDBACK_OFFSET}
+          label="Quick chat"
+        />
+        <InputBar compact={!fullscreen} onSend={onSend} onFileSelect={onFileSelect} disabled={!connected} />
+      </div>
+    </>
+  )
+
+  if (fullscreen) {
     return (
-      <div className="fixed inset-0 z-50 hidden lg:block">
-        <div className="absolute inset-0 bg-black/60" onClick={onCollapseExpand} />
+      <div className="fixed inset-0 z-50 flex lg:items-stretch lg:justify-center">
+        <button
+          type="button"
+          tabIndex={-1}
+          aria-hidden="true"
+          onClick={closeFullscreen}
+          className="absolute inset-0 hidden cursor-default bg-black/60 lg:block"
+        />
         <div
-          className="relative mx-auto flex h-full w-full max-w-3xl flex-col overflow-hidden shadow-2xl"
-          style={{ backgroundColor: '#16213E' }}
+          ref={containerRef}
+          id="hero-chat-widget"
+          role="dialog"
+          aria-modal="true"
+          aria-label="SchemeBot chat"
+          className="relative flex h-full w-full flex-col overflow-hidden bg-bg shadow-float lg:max-w-3xl"
         >
-          <WidgetHeader
-            expanded
-            onRefresh={onRefresh}
-            onClose={onCollapseExpand}
-          />
-          <div className="flex min-h-0 flex-1 flex-col bg-white">
-            <ChatWindow messages={messages} isTyping={typing} onExampleClick={onSend} />
-            <InputBar
-              language={language}
-              onSend={onSend}
-              onFileSelect={onFileSelect}
-              disabled={!connected}
-            />
-          </div>
+          {body}
         </div>
       </div>
     )
   }
 
   return (
-    <div id="hero-chat-widget" className="hidden self-center lg:block">
-      <div
-        className="mx-auto flex h-[480px] w-[380px] flex-col overflow-hidden rounded-2xl border border-white/10 shadow-2xl"
-        style={{ backgroundColor: '#16213E' }}
-      >
-        <WidgetHeader
-          onRefresh={onRefresh}
-          onExpandToggle={onExpand}
-          onMinimize={onMinimize}
-        />
-
-        {/* Messages */}
-        <div
-          ref={messagesContainerRef}
-          className="flex-1 space-y-3 overflow-y-auto px-4 py-4"
-          style={{ backgroundColor: '#0D1B2A' }}
-        >
-          {messages.map((msg) =>
-            msg.role === 'user' ? (
-              <div
-                key={msg.id}
-                className="ml-auto max-w-[85%] rounded-2xl rounded-tr-sm px-3 py-2 text-xs text-white"
-                style={{ backgroundColor: '#E94560' }}
-              >
-                {msg.text}
-              </div>
-            ) : (
-              <div
-                key={msg.id}
-                className="max-w-[85%] rounded-2xl rounded-tl-sm border-l-2 border-accent bg-white px-3 py-2 text-xs text-text-primary"
-              >
-                {msg.text}
-              </div>
-            )
-          )}
-          {typing && <CompactTypingIndicator />}
-        </div>
-
-        {/* Input bar */}
-        <div className="border-t border-white/10 p-3">
-          <div className="flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-2">
-            <button type="button" aria-label="Attach file" className="text-white/60 transition-colors hover:text-white">
-              📎
-            </button>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => onInputChange(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={!connected}
-              placeholder="Ask about any scheme..."
-              className="min-w-0 flex-1 bg-transparent text-xs text-white placeholder:text-white/60 focus:outline-none disabled:opacity-50"
-            />
-            <button
-              type="button"
-              onClick={() => onSend(input)}
-              disabled={!connected || !input.trim()}
-              aria-label="Send"
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white transition-colors disabled:opacity-50"
-              style={{ backgroundColor: '#E94560' }}
-            >
-              →
-            </button>
-          </div>
-          <p className="mt-2 text-center text-xs text-white/40">Press Enter or click →</p>
-        </div>
-      </div>
+    <div
+      ref={containerRef}
+      id="hero-chat-widget"
+      role="region"
+      aria-label="SchemeBot quick chat"
+      className="mx-auto flex h-[540px] w-full max-w-[440px] flex-col overflow-hidden rounded-2xl border border-white/15 bg-bg shadow-float"
+    >
+      {body}
     </div>
   )
 }

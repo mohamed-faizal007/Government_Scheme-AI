@@ -1,22 +1,34 @@
-const BORDER_COLORS = ['border-l-primary', 'border-l-accent', 'border-l-success', 'border-l-amber']
+import { sectionLabel } from '../utils/sections'
+import Icon from './Icons'
 
-export default function SchemeCard({ schemeName, benefitSummary, eligibilitySummary, sourceFile, index = 0 }) {
-  const borderColor = BORDER_COLORS[index % BORDER_COLORS.length]
-
+export default function SchemeCard({ schemeName, benefitSummary, sections = [], onViewDetails }) {
   return (
-    <div
-      className={`group cursor-default rounded-lg border border-border ${borderColor} border-l-4 bg-surface p-3 shadow-card transition-shadow hover:shadow-md`}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="text-sm font-bold text-text-primary">{schemeName}</h4>
-        <span className="text-text-secondary opacity-0 transition-opacity group-hover:opacity-100">→</span>
-      </div>
-      {eligibilitySummary && (
-        <span className="mt-1.5 inline-block rounded-full bg-primary-light px-2 py-0.5 text-[11px] font-medium text-primary">
-          {eligibilitySummary}
-        </span>
+    <article className="flex flex-col gap-2 rounded-xl border border-line bg-surface p-3.5 shadow-card">
+      <h4 className="text-sm font-semibold leading-snug text-ink">{schemeName}</h4>
+      {benefitSummary && <p className="text-xs text-ink-muted">{benefitSummary}</p>}
+      {sections.length > 0 && (
+        <ul className="flex flex-wrap gap-1.5" aria-label="Sections available">
+          {sections.map((section) => (
+            <li
+              key={section}
+              className="rounded-full bg-brand-soft px-2 py-0.5 text-xs font-medium text-ink-muted"
+            >
+              {sectionLabel(section)}
+            </li>
+          ))}
+        </ul>
       )}
-      {benefitSummary && <p className="mt-1.5 text-xs text-text-secondary">{benefitSummary}</p>}
-    </div>
+      {onViewDetails && (
+        <button
+          type="button"
+          onClick={onViewDetails}
+          className="mt-auto inline-flex items-center gap-1 self-start rounded-md text-xs font-semibold text-info hover:underline"
+        >
+          View details
+          <Icon name="arrowRight" className="h-3.5 w-3.5" />
+          <span className="sr-only"> for {schemeName}</span>
+        </button>
+      )}
+    </article>
   )
 }

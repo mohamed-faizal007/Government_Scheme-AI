@@ -3,12 +3,16 @@ import { WS_URL } from '../utils/api'
 
 const RECONNECT_DELAY_MS = 2000
 
-export function useChatSocket({ sessionId, onMessage }) {
+export function useChatSocket({ sessionId, onMessage, onDisconnect }) {
   const [connected, setConnected] = useState(false)
   const socketRef = useRef(null)
   const reconnectTimerRef = useRef(null)
   const onMessageRef = useRef(onMessage)
-  onMessageRef.current = onMessage
+  const onDisconnectRef = useRef(onDisconnect)
+  useEffect(() => {
+    onMessageRef.current = onMessage
+    onDisconnectRef.current = onDisconnect
+  })
 
   const connect = useCallback(() => {
     const ws = new WebSocket(WS_URL)
@@ -27,6 +31,7 @@ export function useChatSocket({ sessionId, onMessage }) {
 
     ws.onclose = () => {
       setConnected(false)
+      onDisconnectRef.current?.()
       reconnectTimerRef.current = setTimeout(connect, RECONNECT_DELAY_MS)
     }
 

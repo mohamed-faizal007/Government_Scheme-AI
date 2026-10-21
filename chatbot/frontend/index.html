@@ -2,9 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b2447'/%3E%3Cpath d='M16 6.5c-3.6 0-6.5 2.6-6.5 5.8V13h13v-.7c0-3.2-2.9-5.8-6.5-5.8z' fill='%23fff'/%3E%3Crect x='8.5' y='14.5' width='15' height='1.8' rx='.9' fill='%23fff'/%3E%3Crect x='10.2' y='17.4' width='2.2' height='5.4' rx='.6' fill='%23fff'/%3E%3Crect x='14.9' y='17.4' width='2.2' height='5.4' rx='.6' fill='%23fff'/%3E%3Crect x='19.6' y='17.4' width='2.2' height='5.4' rx='.6' fill='%23fff'/%3E%3Crect x='8' y='24' width='16' height='2' rx='1' fill='%23c8283f'/%3E%3C/svg%3E" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Government Scheme Assistant</title>
+    <meta name="description" content="Find Indian government schemes you may qualify for. Ask in English, Hindi or Tamil. Data from MyScheme.gov.in." />
+    <meta name="theme-color" content="#0b2447" />
+    <title>SchemeBot – Government Scheme Assistant</title>
+    <script>
+      // Apply the saved or system theme before first paint to avoid a flash.
+      (function () {
+        try {
+          var saved = localStorage.getItem('gsa_theme')
+          var dark = saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches
+          document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light')
+        } catch (e) {
+          document.documentElement.setAttribute('data-theme', 'light')
+        }
+      })()
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&display=swap"
+    />
   </head>
   <body>
     <div id="root"></div>

@@ -194,8 +194,12 @@ def generate(
 
     declined = DECLINE_MESSAGE.strip().lower() in answer.strip().lower()
     sources = []
+    used_schemes = []
     if not declined:
         seen = set()
+        for hit in retrieved_schemes:
+            if names_scheme(answer, hit.get("scheme_name", "")) and hit["scheme"].get("_id"):
+                used_schemes.append({"id": str(hit["scheme"]["_id"]), "name": hit["scheme_name"]})
         for hit in retrieved_schemes:
             key = (hit["scheme_name"], hit["section"])
             if key in seen:
@@ -216,6 +220,7 @@ def generate(
         "sources": sources,
         "confidence": confidence,
         "language": language,
+        "used_schemes": used_schemes,  # cited schemes with ids; the API keeps them for follow-ups
     }
 
 

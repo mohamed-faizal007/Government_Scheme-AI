@@ -140,36 +140,38 @@ export default function App() {
   })
 
   // Sends text on the main chat without adding a user bubble (used by send and retry).
-  const dispatchMain = (text) => {
+  const dispatchMain = (text, source = 'typed') => {
     setIsTyping(true)
     pendingRef.current.push({ target: 'main', text })
-    if (!sendMessage(text, language)) {
+    if (!sendMessage(text, language, source)) {
       pendingRef.current.pop()
       setIsTyping(false)
       setMessages((prev) => [...prev, errorMessage(NOT_CONNECTED_TEXT, text)])
     }
   }
 
-  const dispatchWidget = (text) => {
+  const dispatchWidget = (text, source = 'typed') => {
     setWidgetTyping(true)
     pendingRef.current.push({ target: 'widget', text })
-    if (!sendMessage(text, language)) {
+    if (!sendMessage(text, language, source)) {
       pendingRef.current.pop()
       setWidgetTyping(false)
       setWidgetMessages((prev) => [...prev, errorMessage(NOT_CONNECTED_TEXT, text)])
     }
   }
 
-  const handleSend = (text) => {
+  // source is "button" for UI-generated text (suggestions, "View details"): the backend then
+  // answers in the pill language instead of detecting the language of text the user didn't type.
+  const handleSend = (text, source = 'typed') => {
     setMessages((prev) => [...prev, { id: nextId(), role: 'user', text }])
-    dispatchMain(text)
+    dispatchMain(text, source)
   }
 
-  const sendWidgetMessage = (text) => {
+  const sendWidgetMessage = (text, source = 'typed') => {
     const trimmed = (text || '').trim()
     if (!trimmed) return
     setWidgetMessages((prev) => [...prev, { id: nextId(), role: 'user', text: trimmed }])
-    dispatchWidget(trimmed)
+    dispatchWidget(trimmed, source)
   }
 
   const handleRetry = (text, errorId) => {
@@ -308,7 +310,7 @@ export default function App() {
                 messages={messages}
                 isTyping={isTyping}
                 uploading={uploading}
-                onExampleClick={handleSend}
+                onExampleClick={(text) => handleSend(text, 'button')}
                 onRetry={handleRetry}
                 sessionId={sessionId}
               />

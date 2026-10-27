@@ -49,10 +49,10 @@ export function useChatSocket({ sessionId, onMessage, onDisconnect }) {
   }, [connect])
 
   const sendMessage = useCallback(
-    (message, language) => {
+    (message, language, source = 'typed') => {
       const ws = socketRef.current
       if (!ws || ws.readyState !== WebSocket.OPEN) return false
-      ws.send(JSON.stringify({ message, session_id: sessionId, language }))
+      ws.send(JSON.stringify({ message, session_id: sessionId, language, source }))
       return true
     },
     [sessionId]

@@ -1,13 +1,20 @@
 """End-to-end RAG chain: retrieve -> generate.
 Run test: python -m chatbot.backend.rag.rag_chain  (from repo root)
 """
-from ..retrieval.retriever import retrieve
+from ..retrieval.retriever import fetch_by_ids, retrieve
 from ..translation.translator import translate
 from .generator import DECLINE_MESSAGE, generate
 
 
-def answer(query: str, language: str = "en", system_prompt_suffix: str = "") -> dict:
-    retrieved_schemes = retrieve(query, top_k=4)
+def answer(
+    query: str,
+    language: str = "en",
+    system_prompt_suffix: str = "",
+    scheme_ids: list[str] | None = None,
+) -> dict:
+    """With `scheme_ids` (a follow-up about schemes already shown) those schemes are used
+    instead of a fresh similarity search."""
+    retrieved_schemes = fetch_by_ids(scheme_ids) if scheme_ids else retrieve(query, top_k=4)
 
     if not retrieved_schemes:
         return {
@@ -15,6 +22,7 @@ def answer(query: str, language: str = "en", system_prompt_suffix: str = "") -> 
             "sources": [],
             "confidence": "low",
             "language": language,
+            "used_schemes": [],
         }
 
     result = generate(query, retrieved_schemes, language=language, system_prompt_suffix=system_prompt_suffix)

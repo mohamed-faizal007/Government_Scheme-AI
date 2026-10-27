@@ -4,6 +4,30 @@ Run test: python -m chatbot.backend.router.intent_classifier  (from repo root)
 import re
 
 from ..database.load_chroma import STATE_NAMES
+from .scheme_names import find_schemes_in
+
+# Questions about a scheme's own rules ("who can apply", "how can I apply"). They would otherwise be
+# swallowed by the first-person eligibility patterns ("can i apply"), so they are checked first.
+SCHEME_DETAIL_PATTERNS = [
+    r"\bwho\s+(?:all\s+)?(?:can|could|may)\s+apply\b", r"\bwho\s+(?:is|are)\s+eligible\b",
+    r"\bhow\s+(?:can|do|should|to)\s+(?:i\s+)?apply\b",
+    r"\btell\s+me\s+more\b", r"\bmore\s+(?:details?|info(?:rmation)?)\b",
+    r"\bdetails?\s+(?:of|about|on|for)\b", r"\bgive\s+me\s+(?:the\s+)?details?\b",
+    r"\bdocuments?\s+(?:needed|required|necessary)\b", r"\beligibility\s+criteria\b",
+    r"\bapplication\s+(?:process|procedure)\b",
+    # Romanized Hindi
+    r"\bkaun\b.*\b(?:apply|avedan|aavedan)\b", r"\bkaise\s+(?:apply|avedan|aavedan)\b",
+    r"\baur\s+(?:batao|bataiye|jaankari|jankari)\b", r"\bdastavez\b",
+]
+
+# Native-script versions. "कौन आवेदन कर सकता है" (who can apply) must not hit the first-person
+# eligibility pattern "आवेदन कर सकता".
+NATIVE_SCHEME_DETAIL_PATTERNS = [
+    r"कौन.*(?:आवेदन|पात्र)", r"और\s*(?:बता|जानकारी)", r"अधिक\s*जानकारी", r"विवरण", r"ब्यौरा",
+    r"कैसे\s*आवेदन", r"आवश्यक\s*दस्तावेज",
+    r"யார்.*(?:விண்ணப்பிக்க|தகுதி)", r"மேலும்\s*(?:சொல்|தெரிந்து|விவரம்|தகவல்)", r"விவரங்கள்|விவரம்",
+    r"எப்படி\s*விண்ணப்பிக்க", r"தேவையான\s*ஆவணங்கள்",
+]
 
 ELIGIBILITY_PATTERNS = [
     r"am i eligible", r"do i qualify", r"can i apply", r"check eligibility", r"eligible for",
@@ -141,16 +165,26 @@ def extract_entities(query: str) -> dict:
     return entities
 
 
+def is_detail_request(query: str) -> bool:
+    """True for "tell me more about X" / "details of X" style requests (English or native script)."""
+    return _match_any(SCHEME_DETAIL_PATTERNS, query) or _match_any(NATIVE_SCHEME_DETAIL_PATTERNS, query)
+
+
 def classify(query: str) -> dict:
     entities = extract_entities(query)
 
     # Native-script pre-check: runs before (and independent of) translation.
+    if _match_any(NATIVE_SCHEME_DETAIL_PATTERNS, query):
+        return {"intent": "scheme_search", "confidence": 0.85, "extracted_entities": entities}
     if _match_any(NATIVE_ELIGIBILITY_PATTERNS, query):
         return {"intent": "eligibility_check", "confidence": 0.85, "extracted_entities": entities}
     if _match_any(NATIVE_DOCUMENT_PATTERNS, query):
         return {"intent": "document_upload", "confidence": 0.85, "extracted_entities": entities}
     if _match_any(NATIVE_SCHEME_SEARCH_PATTERNS, query):
         return {"intent": "scheme_search", "confidence": 0.85, "extracted_entities": entities}
+
+    if _match_any(SCHEME_DETAIL_PATTERNS, query):
+        return {"intent": "scheme_search", "confidence": 0.9, "extracted_entities": entities}
 
     if _match_any(ELIGIBILITY_PATTERNS, query):
         return {"intent": "eligibility_check", "confidence": 0.9, "extracted_entities": entities}
@@ -163,6 +197,17 @@ def classify(query: str) -> dict:
 
     if _match_any(SCHEME_SEARCH_PATTERNS, query):
         return {"intent": "scheme_search", "confidence": 0.9, "extracted_entities": entities}
+
+    # No trigger phrase, but the message names a scheme we know: it is a scheme question.
+    # "matched_schemes" lets the caller fetch exactly those schemes.
+    named = find_schemes_in(query)
+    if named:
+        return {
+            "intent": "scheme_search",
+            "confidence": 0.8,
+            "extracted_entities": entities,
+            "matched_schemes": named,
+        }
 
     return {"intent": "out_of_scope", "confidence": 0.5, "extracted_entities": entities}
 

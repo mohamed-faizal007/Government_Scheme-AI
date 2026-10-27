@@ -141,7 +141,7 @@ export default function HeroChatWidget({
           messages={messages}
           isTyping={typing}
           uploading={uploading}
-          onExampleClick={onSend}
+          onExampleClick={(text) => onSend(text, 'button')}
           onRetry={onRetry}
           sessionId={sessionId}
           compact={!fullscreen}

@@ -202,6 +202,33 @@ def retrieve(query: str, filters: dict = None, top_k: int = 5) -> list[dict]:
     return hits
 
 
+def fetch_by_ids(scheme_ids: list[str]) -> list[dict]:
+    """Hits for specific schemes (same shape as retrieve()), in the order given. Used for follow-ups."""
+    from bson import ObjectId
+
+    mongo_collection = get_schemes_collection()
+    hits = []
+    for scheme_id in scheme_ids:
+        try:
+            doc = mongo_collection.find_one({"_id": ObjectId(scheme_id)})
+        except Exception:
+            logger.exception("fetch_by_ids: bad scheme id %r", scheme_id)
+            continue
+        if not doc:
+            continue
+        doc["_id"] = str(doc["_id"])
+        hits.append(
+            {
+                "scheme": doc,
+                "scheme_name": (doc.get("metadata") or {}).get("scheme_name", ""),
+                "section": "overview",
+                "source_file": doc.get("source_file", ""),
+                "score": 1.0,
+            }
+        )
+    return hits
+
+
 if __name__ == "__main__":
     sys.stdout.reconfigure(encoding="utf-8")
     test_queries = [

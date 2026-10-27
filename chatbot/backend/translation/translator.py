@@ -54,6 +54,32 @@ def detect_language(text: str) -> str:
     return "unknown"
 
 
+TYPED_CONFIDENCE = 0.9  # detection confidence needed to override the language pill
+TYPED_MIN_WORDS = 3
+
+
+def resolve_language(message: str, pill: str | None, source: str = "typed") -> str:
+    """The language to answer in.
+
+    - source "button" (UI-generated text such as "View details"): the pill, since the user did not
+      type that English.
+    - typed text of >= 3 words detected with >= 0.9 confidence as en/hi/ta: the detected language,
+      even if it disagrees with the pill (the pill itself is never changed).
+    - short or uncertain typed text ("ok", a bare scheme name, a number): the pill.
+    With no pill, fall back to plain detection.
+    """
+    if source == "button" and pill:
+        return pill
+    if len(message.split()) >= TYPED_MIN_WORDS:
+        try:
+            top = detect_langs(message)[0]
+        except (LangDetectException, IndexError):
+            top = None
+        if top is not None and top.prob >= TYPED_CONFIDENCE and top.lang in SUPPORTED_LANGUAGES:
+            return top.lang
+    return pill or detect_language(message)
+
+
 # Helsinki-NLP Dravidian models cover Tamil (no bilingual ta<->en model exists).
 # Loaded lazily and cached: each is a few hundred MB, so never load at import time.
 _HELSINKI_MODELS = {
@@ -83,6 +109,20 @@ def _get_helsinki(direction: str):
         return None
 
 
+_ABBREV_END_RE = re.compile(r"(?:(?:Rs|No|Nos|Dr|Sr|Jr|Mr|Mrs|Ms|vs|etc|approx|Govt|Dept)|[A-Z]|\d|e\.g|i\.e)\.$")
+
+
+def _split_sentences(line: str) -> list[str]:
+    """Sentences of one line. A period after "Rs", "No", a digit or an initial is not a boundary."""
+    merged: list[str] = []
+    for piece in re.split(r"(?<=[.!?।])\s+", line):
+        if merged and _ABBREV_END_RE.search(merged[-1]):
+            merged[-1] = f"{merged[-1]} {piece}"
+        else:
+            merged.append(piece)
+    return merged
+
+
 def _split_chunks(text: str) -> list[str]:
     """Split on lines, then sentences, so each piece fits the Marian input limit."""
     chunks = []
@@ -110,13 +150,20 @@ def _helsinki_translate(text: str, direction: str) -> str | None:
     prefix = ">>tam<< " if direction == "en-ta" else ""
     try:
         out_lines = []
-        for chunk in _split_chunks(text):
-            if not chunk.strip():
-                out_lines.append(chunk)
+        for line in text.split("\n"):
+            if not line.strip():
+                out_lines.append(line)
                 continue
-            batch = tokenizer([prefix + chunk], return_tensors="pt", padding=True, truncation=True)
-            generated = model.generate(**batch, max_new_tokens=512)
-            out_lines.append(tokenizer.decode(generated[0], skip_special_tokens=True))
+            # One sentence per model call: given several sentences at once, Marian drops some.
+            translated = []
+            for sentence in _split_sentences(line):
+                for chunk in _split_chunks(sentence):
+                    if not chunk.strip():
+                        continue
+                    batch = tokenizer([prefix + chunk], return_tensors="pt", padding=True, truncation=True)
+                    generated = model.generate(**batch, max_new_tokens=512)
+                    translated.append(tokenizer.decode(generated[0], skip_special_tokens=True))
+            out_lines.append(" ".join(translated))
         result = "\n".join(out_lines)
     except Exception:
         logger.exception("Helsinki %s translation failed", direction)

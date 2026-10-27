@@ -28,10 +28,12 @@ from ..eligibility.slot_parser import EXAMPLES, is_skip, parse_slot_reply
 from ..eligibility.user_profile import UserProfile
 from ..rag.rag_chain import answer as rag_answer
 from ..retrieval.retriever import retrieve
-from ..router.intent_classifier import classify
+from ..router.followup import MAX_REMEMBERED_SCHEMES, is_followup, ordinal_index
+from ..router.intent_classifier import classify, is_detail_request
+from ..router.scheme_names import find_schemes_in
 from ..sync import scheduler as sync_scheduler
 from ..sync import sync_status
-from ..translation.translator import detect_language, translate
+from ..translation.translator import resolve_language, translate
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +107,7 @@ def _new_session() -> dict:
         "eligibility_query": None,
         "slot_failures": {},
         "skipped_slots": set(),
+        "last_schemes": [],  # [{"id", "name"}] the bot last cited; resolves "it" / "the first one"
     }
 
 
@@ -139,6 +142,9 @@ class ChatRequest(BaseModel):
     message: str
     session_id: Optional[str] = None
     language: Optional[str] = None
+    # "button" for UI-generated text (suggestions, "View details"); such text is answered in the
+    # pill language instead of the detected one. Optional, so older clients keep working.
+    source: Literal["typed", "button"] = "typed"
 
 
 class ChatResponse(BaseModel):
@@ -416,7 +422,9 @@ def _add_sync_dates(sources: list) -> None:
             source["data_as_of"] = _format_data_as_of(last_synced)
 
 
-def _process_message(message: str, session_id: Optional[str], language_override: Optional[str]) -> dict:
+def _process_message(
+    message: str, session_id: Optional[str], language_override: Optional[str], source: str = "typed"
+) -> dict:
     if len(message) > MAX_MESSAGE_LENGTH:
         raise HTTPException(status_code=400, detail="Message exceeds 1000 character limit.")
 
@@ -431,7 +439,7 @@ def _process_message(message: str, session_id: Optional[str], language_override:
             "session_id": sid,
         }
 
-    language = language_override or detect_language(message)
+    language = resolve_language(message, language_override, source)
     sid, session = _get_session(session_id)
     profile: UserProfile = session["profile"]
 
@@ -450,6 +458,7 @@ def _process_message(message: str, session_id: Optional[str], language_override:
     # untranslatable non-English queries on this platform.
     # Native-script keyword pre-check runs on the original text, before
     # trusting the translation.
+    matched_schemes = []
     native = classify(message) if language != "en" else None
     if native and native["intent"] != "out_of_scope":
         intent = native["intent"]
@@ -461,6 +470,7 @@ def _process_message(message: str, session_id: Optional[str], language_override:
         classification = classify(classification_query)
         intent = classification["intent"]
         entities = classification["extracted_entities"]
+        matched_schemes = classification.get("matched_schemes", [])
 
     # A plain slot-filling answer ("I am 30 years old") has no intent
     # trigger phrases and would otherwise fall to out_of_scope. If the bot's
@@ -490,11 +500,31 @@ def _process_message(message: str, session_id: Optional[str], language_override:
     elif session.get("last_intent") == "eligibility_check" and session.get("last_bot_message_was_question"):
         intent = "eligibility_check"
 
+    # Follow-ups ("who can apply for it?", "the first one") reuse the schemes the bot just cited
+    # instead of a fresh search, which has nothing to go on.
+    scheme_ids: list[str] = []
+    rag_query = message
+    last_schemes = session["last_schemes"]
+    if intent in ("scheme_search", "out_of_scope") and session.get("last_slot_asked") is None:
+        needs_names = bool(last_schemes) or is_detail_request(classification_query)
+        named = matched_schemes or (find_schemes_in(classification_query) if needs_names else [])
+        if is_followup(classification_query, last_schemes, bool(named)):
+            idx = ordinal_index(classification_query, len(last_schemes))
+            chosen = last_schemes if idx is None else [last_schemes[idx]]
+            scheme_ids = [s["id"] for s in chosen]
+            rag_query = f"{message} (the user is asking about: {', '.join(s['name'] for s in chosen)})"
+            intent = "scheme_search"
+        elif intent == "scheme_search" and named and (matched_schemes or is_detail_request(classification_query)):
+            # "Tell me more about <exact scheme name>": fetch that scheme, not whatever ranks near it.
+            scheme_ids = [s["id"] for s in named[:2]]
+
     eligibility_results = []
     if intent == "scheme_search" or intent == "comparison":
         suffix = COMPARISON_PROMPT_ADDITION if intent == "comparison" else ""
-        result = rag_answer(message, language=language, system_prompt_suffix=suffix)
+        result = rag_answer(rag_query, language=language, system_prompt_suffix=suffix, scheme_ids=scheme_ids or None)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
+        if result.get("used_schemes"):
+            session["last_schemes"] = result["used_schemes"][:MAX_REMEMBERED_SCHEMES]
     elif intent == "eligibility_check":
         result = _handle_eligibility(profile, message, language, session)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
@@ -623,7 +653,7 @@ def update_profile(request: ProfileRequest):
 
 @app.post("/chat", response_model=ChatResponse)
 def chat(request: ChatRequest):
-    result = _process_message(request.message, request.session_id, request.language)
+    result = _process_message(request.message, request.session_id, request.language, request.source)
     return ChatResponse(**result)
 
 
@@ -668,13 +698,16 @@ async def websocket_chat(websocket: WebSocket):
             message = data.get("message", "")
             session_id = data.get("session_id")
             language = data.get("language")
+            source = data.get("source", "typed")
+            if source not in ("typed", "button"):
+                source = "typed"
 
             try:
                 if session_id:
                     async with _ws_session_locks.setdefault(session_id, asyncio.Lock()):
-                        result = await run_in_threadpool(_process_message, message, session_id, language)
+                        result = await run_in_threadpool(_process_message, message, session_id, language, source)
                 else:
-                    result = await run_in_threadpool(_process_message, message, session_id, language)
+                    result = await run_in_threadpool(_process_message, message, session_id, language, source)
             except HTTPException as exc:
                 await websocket.send_json({"error": exc.detail})
                 continue

@@ -130,7 +130,8 @@ def translate_for_retrieval(query: str) -> str:
     return query
 
 
-def retrieve(query: str, filters: dict = None, top_k: int = 5) -> list[dict]:
+def retrieve(query: str, filters: dict = None, top_k: int = 5, scheme_ids: list[str] | None = None) -> list[dict]:
+    """With `scheme_ids`, only chunks of those schemes are searched (no unfiltered fallback)."""
     # Translated text is used for ChromaDB search only; callers keep the original for the LLM.
     query = translate_for_retrieval(query)
     extracted = extract_filters(query)
@@ -147,8 +148,13 @@ def retrieve(query: str, filters: dict = None, top_k: int = 5) -> list[dict]:
     # and benefit_type are extracted for logging/downstream use but not enforced
     # as a hard filter here since they are not stored per-chunk.
     where = {"state": filters["state"]} if filters.get("state") else None
+    if scheme_ids is not None:
+        if not scheme_ids:
+            return []
+        where = {"scheme_id": {"$in": list(scheme_ids)}}  # replaces the state filter: scope was already computed
 
-    fetch_n = top_k * 2
+    # Several chunks per scheme are returned; a scoped search needs enough of them for top_k distinct schemes.
+    fetch_n = top_k * (6 if scheme_ids is not None else 2)
     results = collection.query(
         query_embeddings=[query_vector],
         n_results=fetch_n,
@@ -159,7 +165,7 @@ def retrieve(query: str, filters: dict = None, top_k: int = 5) -> list[dict]:
     metadatas = results.get("metadatas", [[]])[0]
     distances = results.get("distances", [[]])[0]
 
-    if not metadatas and where is not None:
+    if not metadatas and where is not None and scheme_ids is None:
         # Fall back to an unfiltered search if the state filter over-constrained results.
         results = collection.query(
             query_embeddings=[query_vector],

@@ -206,10 +206,15 @@ def assess(result: dict, profile: UserProfile) -> dict:
 _SENTENCE_END = re.compile(r"(?<![Rr]s)(?<!No)(?<!Dr)(?<!Sh)(?<=[.!])\s+(?=[A-Z])")
 
 
+_BENEFIT_LABEL = re.compile(r"^\s*pattern of assistance\s*:\s*", re.IGNORECASE)
+
+
 def benefit_line(scheme: dict) -> str | None:
     benefits = scheme.get("benefits", {}) or {}
     candidates = [benefits.get("financial_assistance")] + list(benefits.get("other_benefits") or [])
     for candidate in candidates:
+        if isinstance(candidate, str):
+            candidate = _BENEFIT_LABEL.sub("", candidate)  # "Pattern of Assistance:Rs. 5,000..." -> "Rs. 5,000..."
         cleaned = clean_condition(candidate) if isinstance(candidate, str) else None
         if cleaned:
             first = _SENTENCE_END.split(cleaned, maxsplit=1)[0]
@@ -241,6 +246,7 @@ T = {
         "hidden": "I left out {n} scheme(s) you do not appear to be eligible for. Say \"show schemes I'm not eligible for\" to see them.",
         "intro": "Here is what I found for your profile:",
         "hint": "Using your occupation ({occupation}), I searched {topic} schemes.",
+        "no_state": "I found no schemes specific to {state} in my data, so these are central (not state-specific) schemes only.",
         "no_match": "I could not find any {topic} schemes to check. Please try another area or visit myscheme.gov.in.",
         "no_result": "I couldn't find a matching scheme to check eligibility against. Please check myscheme.gov.in.",
         "ask_topic": "Which area are you interested in? (farming, education, housing, business, health, pension...)",
@@ -262,6 +268,7 @@ T = {
         "hidden": "मैंने {n} ऐसी योजना छोड़ दी जिनके लिए आप पात्र प्रतीत नहीं होते। देखने के लिए \"show schemes I'm not eligible for\" लिखें।",
         "intro": "आपकी प्रोफ़ाइल के लिए ये मिला:",
         "hint": "आपके व्यवसाय ({occupation}) के आधार पर मैंने {topic} योजनाएं खोजीं।",
+        "no_state": "मेरे डेटा में {state} की अपनी कोई योजना नहीं मिली, इसलिए ये केवल केंद्रीय (राज्य-विशेष नहीं) योजनाएं हैं।",
         "no_match": "जांचने के लिए {topic} की कोई योजना नहीं मिली। कृपया कोई और क्षेत्र चुनें या myscheme.gov.in देखें।",
         "no_result": "पात्रता जांचने के लिए कोई मेल खाती योजना नहीं मिली। कृपया myscheme.gov.in देखें।",
         "ask_topic": "आप किस क्षेत्र में रुचि रखते हैं? (खेती, शिक्षा, आवास, व्यापार, स्वास्थ्य, पेंशन...)",
@@ -283,6 +290,7 @@ T = {
         "hidden": "நீங்கள் தகுதியற்ற {n} திட்டம்(ங்கள்) தவிர்க்கப்பட்டன. பார்க்க \"show schemes I'm not eligible for\" என்று எழுதுங்கள்.",
         "intro": "உங்கள் சுயவிவரத்திற்கு கிடைத்தவை:",
         "hint": "உங்கள் தொழிலின் ({occupation}) அடிப்படையில் {topic} திட்டங்களைத் தேடினேன்.",
+        "no_state": "என் தரவில் {state} மாநிலத்துக்கே உரிய திட்டங்கள் எதுவும் கிடைக்கவில்லை; எனவே இவை மத்திய (மாநிலம் சார்ந்ததல்லாத) திட்டங்கள் மட்டுமே.",
         "no_match": "சரிபார்க்க {topic} திட்டங்கள் எதுவும் கிடைக்கவில்லை. வேறு துறையைத் தேர்வு செய்யுங்கள் அல்லது myscheme.gov.in பாருங்கள்.",
         "no_result": "தகுதியைச் சரிபார்க்க பொருந்தும் திட்டம் கிடைக்கவில்லை. myscheme.gov.in தளத்தைப் பாருங்கள்.",
         "ask_topic": "எந்தத் துறையில் ஆர்வம் உள்ளது? (விவசாயம், கல்வி, வீட்டுவசதி, தொழில், சுகாதாரம், ஓய்வூதியம்...)",
@@ -318,6 +326,10 @@ def hint_note(occupation: str, topic: str, language: str) -> str:
     return _t(language)["hint"].format(occupation=occupation, topic=_topic_label(topic, language).lower())
 
 
+def no_state_note(state: str, language: str) -> str:
+    return _t(language)["no_state"].format(state=state)
+
+
 def no_match_text(topic: str, language: str) -> str:
     return _t(language)["no_match"].format(topic=_topic_label(topic, language).lower())
 
@@ -333,7 +345,8 @@ def select_entries(entries: list[dict], show_not: bool) -> tuple[list[dict], int
     """(entries to show, how many 'not eligible' were hidden, True when none were eligible/may)."""
     good = [e for e in entries if e["status"] != "not"]
     bad = [e for e in entries if e["status"] == "not"]
-    good.sort(key=lambda e: 0 if e["status"] == "eligible" else 1)  # stable: keeps retrieval order inside a rank
+    # eligible first, then fewest unverified conditions; the sort is stable, so retrieval order breaks remaining ties
+    good.sort(key=lambda e: (0 if e["status"] == "eligible" else 1, len(e["conditions"])))
     if show_not:
         return (good + bad)[:MAX_SCHEMES], 0, False
     if good:

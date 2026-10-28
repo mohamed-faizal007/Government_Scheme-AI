@@ -22,6 +22,7 @@ from chatbot.backend.eligibility import presentation as pres
 from chatbot.backend.eligibility.rules_engine import check_eligibility
 from chatbot.backend.eligibility.user_profile import UserProfile
 from chatbot.backend.nlu import llm_understander as nlu
+from chatbot.backend.retrieval import scheme_states
 
 # ---------------------------------------------------------------------------
 # helpers
@@ -103,13 +104,17 @@ STUDENT = scheme("Merit Scholarship", conditions=["Annual income not exceeding R
 @pytest.fixture
 def chat(monkeypatch):
     """Fake retrieval (records queries) and translation; no LLM anywhere."""
-    state = {"queries": [], "hits": [hit(BUSINESS), hit(FARM), hit(STUDENT)]}
+    state = {"queries": [], "calls": [], "hits": [hit(BUSINESS), hit(FARM), hit(STUDENT)]}
 
-    def fake_retrieve(query, top_k=4, filters=None):
+    def fake_retrieve(query, top_k=4, filters=None, scheme_ids=None):
         state["queries"].append(query)
-        return list(state["hits"])
+        state["calls"].append({"top_k": top_k, "scheme_ids": scheme_ids})
+        hits = [h for h in state["hits"] if scheme_ids is None or h["scheme"]["_id"] in scheme_ids]
+        return hits[:top_k]
 
     monkeypatch.setattr(api, "retrieve", fake_retrieve)
+    # the state index is built from whatever hits the test installs, with the real classifier
+    monkeypatch.setattr(api, "_state_index", lambda: scheme_states.build_index(h["scheme"] for h in state["hits"]))
     monkeypatch.setattr(api, "translate", lambda text, **k: text)
     monkeypatch.setattr(api, "find_schemes_in", lambda *a, **k: [])
     monkeypatch.setattr(answer_cache, "enabled", lambda: False)
@@ -380,6 +385,87 @@ def test_unverified_conditions_capped_at_three():
 def test_one_line_benefit_is_shown():
     assert pres.benefit_line(FARM) == "Rs. 6,000 per year in three instalments."
     assert pres.benefit_line(scheme("No Benefit")) is None
+
+
+# ---------------------------------------------------------------------------
+# state scope: the user's state plus central schemes, many candidates, best five shown
+# ---------------------------------------------------------------------------
+def farm_scheme(name, conditions, benefit=""):
+    return scheme(name, conditions=conditions, tags=["Agriculture", "Farmer"], category="Agriculture", benefit=benefit)
+
+
+MEGHALAYA = [farm_scheme(f"Meghalaya Farm Scheme {n}", ["Applicant must be a resident of Meghalaya"]) for n in range(1, 4)]
+TN_ELIGIBLE = farm_scheme("Tamil Nadu Farmer Grant", ["Applicant must be a resident of Tamil Nadu", "Age between 18 and 60 years"])
+TN_MAY = farm_scheme("Tamil Nadu Land Support", ["Applicant must be a resident of Tamil Nadu", "Must own at least two acres of land"])
+CENTRAL_ELIGIBLE = farm_scheme("Central Farmer Income Support", ["Annual income not exceeding Rs. 3 lakh"])
+CENTRAL_MAY = farm_scheme("Central Crop Insurance", ["Must have a valid crop sowing certificate"])
+
+
+def test_tamil_nadu_farmer_sees_only_tn_and_central_schemes_best_first(chat):
+    # Meghalaya schemes rank first in retrieval, as in the reported bug; the scope must drop them
+    chat["hits"] = [hit(s) for s in MEGHALAYA + [CENTRAL_MAY, TN_MAY, CENTRAL_ELIGIBLE, TN_ELIGIBLE]]
+    sid, _ = seed_session(full_profile(age=30, income_annual=150000, occupation="farmer"))
+    result = _process_message("Which schemes am I eligible for?", sid, "en")
+    names = [r["scheme_name"] for r in result["eligibility_results"]]
+    assert not any("Meghalaya" in n for n in names) and "Meghalaya" not in result["answer"]
+    assert set(names) == {"Tamil Nadu Farmer Grant", "Central Farmer Income Support", "Tamil Nadu Land Support", "Central Crop Insurance"}
+    statuses = [r["status"] for r in result["eligibility_results"]]
+    assert statuses == ["eligible", "eligible", "may", "may"]  # eligible above may-be-eligible
+    assert names[:2] == ["Central Farmer Income Support", "Tamil Nadu Farmer Grant"] or names[:2] == ["Tamil Nadu Farmer Grant", "Central Farmer Income Support"]
+    assert "no schemes specific to" not in result["answer"]
+    call = chat["calls"][0]
+    assert call["top_k"] == settings.eligibility_candidates == 30 and call["scheme_ids"] is not None
+
+
+def test_state_with_no_schemes_says_so_and_shows_central_only(chat):
+    chat["hits"] = [hit(s) for s in MEGHALAYA + [CENTRAL_MAY, TN_ELIGIBLE, CENTRAL_ELIGIBLE]]
+    sid, _ = seed_session(full_profile(state="Kerala", age=30, income_annual=150000, occupation="farmer"))
+    result = _process_message("Which schemes am I eligible for?", sid, "en")
+    names = [r["scheme_name"] for r in result["eligibility_results"]]
+    assert set(names) == {"Central Farmer Income Support", "Central Crop Insurance"}
+    assert "I found no schemes specific to Kerala in my data" in result["answer"]
+
+
+def test_all_candidates_are_evaluated_and_best_five_shown_by_fewest_unverified(chat):
+    # 12 candidates; the only fully eligible one is last in retrieval order and must still come first
+    maybe = [farm_scheme(f"Farm Scheme {n}", [f"Must hold land record number {n}-{k} issued locally" for k in range(1 + (n * 7) % 4)])
+             for n in range(11)]
+    best = farm_scheme("Eligible Farm Scheme", ["Age between 18 and 60 years"])
+    chat["hits"] = [hit(s) for s in maybe + [best]]
+    sid, _ = seed_session(full_profile(age=30, occupation="farmer"))
+    result = _process_message("Which schemes am I eligible for?", sid, "en")
+    results = result["eligibility_results"]
+    assert len(results) == 5 and results[0]["scheme_name"] == "Eligible Farm Scheme" and results[0]["status"] == "eligible"
+    counts = [len(r["reasons"]) for r in results[1:]]
+    assert counts == sorted(counts)  # fewest unverified conditions first
+
+
+def test_not_eligible_entries_show_only_failed_conditions():
+    sch = scheme("Mixed Scheme", conditions=["Age between 18 and 25 years", "Must own at least two acres of land"], tags=["Agriculture"])
+    profile = UserProfile(age=40)
+    engine = check_eligibility(profile, sch)
+    assert engine["failed_conditions"] == ["Age between 18 and 25 years"] and engine["unverifiable_conditions"]
+    entry = pres.make_entry(hit(sch), engine, profile)
+    text, _ = pres.render_answer([entry], "en", show_not=True)
+    assert "Age between 18 and 25 years" in text and "two acres" not in text
+
+
+def test_scheme_states_use_whole_words_and_central_means_no_state():
+    assert scheme_states.scheme_states(farm_scheme("Goal Oriented Scheme", ["Meet the goals of the programme"])) == frozenset()
+    assert scheme_states.scheme_states(farm_scheme("X - Tamil Nadu", ["Resident of Kerala"])) == {"Tamil Nadu", "Kerala"}
+    index = scheme_states.build_index(MEGHALAYA + [TN_ELIGIBLE, CENTRAL_MAY])
+    scope = scheme_states.scope_for_state(index, "tamil nadu")
+    assert (scope["state_count"], scope["central_count"]) == (1, 1) and "Meghalaya Farm Scheme 1" not in scope["ids"]
+
+
+def test_pattern_of_assistance_label_is_dropped_and_truncation_kept():
+    labelled = scheme("L", benefit="")
+    labelled["benefits"]["other_benefits"] = ["Pattern of Assistance:Free short-term training to educated unemployed rural youth."]
+    assert pres.benefit_line(labelled) == "Free short-term training to educated unemployed rural youth."
+    long = scheme("Long")
+    long["benefits"]["other_benefits"] = ["Pattern of Assistance:" + "Subsidy on farm machinery purchase " * 6]
+    line = pres.benefit_line(long)
+    assert not line.startswith("Pattern") and len(line) <= 123 and line.endswith("...")
 
 
 # ---------------------------------------------------------------------------

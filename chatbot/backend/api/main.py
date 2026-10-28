@@ -32,6 +32,7 @@ from ..nlu import llm_understander as nlu
 from ..nlu import smalltalk
 from ..nlu import templates as nlu_templates
 from ..rag.rag_chain import answer as rag_answer
+from ..retrieval import scheme_states
 from ..retrieval.retriever import retrieve
 from ..router.followup import MAX_REMEMBERED_SCHEMES, is_followup, ordinal_index
 from ..router.intent_classifier import classify, is_detail_request
@@ -312,6 +313,21 @@ def _retrieve_for_eligibility(query: str, profile: UserProfile, top_k: int) -> l
     return unique
 
 
+def _state_index() -> dict:
+    return scheme_states.get_index()
+
+
+def _retrieve_in_scope(query: str, profile: UserProfile) -> tuple[list, Optional[str]]:
+    """Candidates for `query` limited to the user's state plus central schemes; the second value is the state
+    to tell the user about when it has no schemes of its own (so only central ones were searched)."""
+    top_k = settings.eligibility_candidates
+    if not profile.state:
+        return list(retrieve(query, top_k=top_k)), None
+    scope = scheme_states.scope_for_state(_state_index(), profile.state)
+    hits = list(retrieve(query, top_k=top_k, scheme_ids=scope["ids"]))
+    return hits, (None if scope["state_count"] else profile.state)
+
+
 def _handle_eligibility(
     profile: UserProfile, message: str, language: str, session: dict, topic_key: Optional[str] = None
 ) -> dict:
@@ -350,8 +366,10 @@ def _handle_eligibility(
     session["last_slot_asked"] = None
 
     if topic:
-        candidates = _retrieve_for_eligibility(presentation.topic_query(topic), profile, top_k=15)
+        candidates, stateless = _retrieve_in_scope(presentation.topic_query(topic), profile)
         candidates = [h for h in candidates if presentation.scheme_matches_topic(h["scheme"], topic)]
+        if stateless:
+            note = "\n\n".join(filter(None, [note, presentation.no_state_note(stateless, language)]))
         if not candidates:
             return {
                 "answer": presentation.no_match_text(topic, language),

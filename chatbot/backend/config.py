@@ -33,6 +33,8 @@ class Settings(BaseSettings):
     # Answer generation: GENERATION_PRIMARY=gemini (default) tries Gemini first, "groq" keeps Groq first.
     generation_primary: str = Field(default="gemini", alias="GENERATION_PRIMARY")
     gemini_gen_timeout: float = Field(default=6.0, alias="GEMINI_GEN_TIMEOUT")  # seconds per generation request
+    # Candidate schemes retrieved (and all rule-checked) for profile-based eligibility answers; 5 are shown.
+    eligibility_candidates: int = Field(default=30, alias="ELIGIBILITY_CANDIDATES")
     # ANSWER_CACHE=on/off: reuse guard-passed answers to repeated questions (see backend/cache).
     answer_cache: bool = Field(default=True, alias="ANSWER_CACHE")
 

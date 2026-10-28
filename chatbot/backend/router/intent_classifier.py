@@ -84,6 +84,45 @@ NATIVE_SCHEME_SEARCH_PATTERNS = [
     r"விவசாயி", r"மகளிர்", r"மாணவர்", r"கல்வி", r"வீட்டுவசதி",
 ]
 
+# Clearly off-topic messages stay out_of_scope without any model call. Everything else the rules do
+# not recognise is "unknown" and goes to the understanding layer / retrieval + citation guard.
+OFF_TOPIC_PATTERNS = [
+    r"\b(?:weather|wether|forecast)\b", r"\bcricket\b|\bcricekt\b|\bipl\b|\bfootball\b|\bsports?\b",
+    r"\b(?:match|live)\s+scores?\b", r"\bwho\s+won\b", r"\bjokes?\b|\bjoek\b", r"\bmovies?\b|\bfilms?\b|\bbollywood\b",
+    r"\brecipes?\b|\brecipie\b|\bbiryani\b|\bhow\s+(?:do\s+i|to)\s+cook\b",
+    r"\bstock\s+(?:prices?|market)\b|\bshare\s+(?:prices?|market)\b|\bsensex\b|\bnifty\b|\bbitcoin\b",
+    r"\bnews\b", r"ignore\s+(?:all\s+|any\s+|the\s+|your\s+)?(?:previous|prior|above)\s+instructions?",
+    r"system\s+prompt", r"\bpoems?\b|\bsongs?\b", r"\bpython\b|\bwrite\s+(?:me\s+)?(?:a\s+)?(?:script|code|program)\b",
+    r"\bcapital\s+of\b", r"\bgeneral\s+election\b|\bwho\s+will\s+win\b", r"\bresignation\s+letter\b",
+    # Hindi / Tamil / Romanized Hindi
+    r"मौसम", r"क्रिकेट", r"शेयर\s*बाजार|शेयर\s*बाज़ार", r"फिल्म|फ़िल्म", r"चुटकुला",
+    r"வானிலை", r"கிரிக்கெட்", r"பங்குச்?\s*சந்தை", r"திரைப்படம்", r"நகைச்சுவை",
+    r"\bmausam\b", r"\bchutkula\b",
+]
+
+# Scheme-domain words. A message with one of these is a scheme question even without a trigger phrase
+# ("Scholarship for students in Tamil Nadu").
+TOPIC_PATTERNS = [
+    r"\bscholarships?\b", r"\bstipends?\b", r"\bpensions?\b", r"\bloans?\b", r"\bsubsid(?:y|ies)\b",
+    r"\binsurance\b", r"\bhousing\b", r"\beducation\b", r"\bwidows?\b", r"\bdisabled\b|\bdisabilit\w*|\bdivyang\b|\bhandicapped\b",
+    r"\bfarm(?:er|ers|ing)\b", r"\bstudents?\b", r"\bwom[ae]n\b", r"\bgirls?\b", r"\bgirl\s+child\b",
+    r"\bsc\s*/\s*st\b|\bscheduled\s+(?:caste|tribe)s?\b", r"\bminorit(?:y|ies)\b", r"\bemployment\b|\bunemployed\b",
+    r"\bskill\w*\b", r"\btraining\b", r"\bsenior\s+citizens?\b|\belderly\b|\bold\s+age\b", r"\bentrepreneurs?\b",
+    r"\bhealth\b", r"\bmaternity\b|\bpregnan\w*\b", r"\bcrops?\b", r"\bartisans?\b|\bweavers?\b|\bfisher\w*\b",
+    r"\borphans?\b", r"\bwelfare\b", r"\bfinancial\s+assistance\b", r"\bgrants?\b", r"\bbpl\b",
+    # Romanized Hindi
+    r"\b(?:chhatravritti|chatravritti|vajifa|vidhwa|vidhva|kisan|mahila|ladki|beti|vikalang|rozgar|rojgar|shiksha|awas|karz|vridha\w*|kaushal)\b",
+]
+
+NATIVE_TOPIC_PATTERNS = [
+    # Hindi
+    r"छात्रवृत्ति", r"पेंशन|पेन्शन", r"ऋण|लोन", r"बीमा", r"विधवा", r"विकलांग|दिव्यांग", r"अल्पसंख्यक", r"बालिका|बेटी|लड़की",
+    r"कौशल", r"प्रशिक्षण", r"अनुसूचित", r"वृद्ध|बुजुर्ग", r"भत्ता", r"अनुदान",
+    # Tamil
+    r"உதவித்தொகை", r"ஓய்வூதியம்", r"கடன்", r"காப்பீடு", r"விதவை", r"மாற்றுத்திறனாளி", r"சிறுபான்மை", r"பெண்",
+    r"வேலைவாய்ப்பு", r"திறன்", r"முதியோர்", r"மாணவி",
+]
+
 CATEGORY_PATTERNS = {
     "sc": r"\bsc\b|scheduled caste",
     "st": r"\bst\b|scheduled tribe",
@@ -173,6 +212,9 @@ def is_detail_request(query: str) -> bool:
 def classify(query: str) -> dict:
     entities = extract_entities(query)
 
+    if _match_any(OFF_TOPIC_PATTERNS, query):
+        return {"intent": "out_of_scope", "confidence": 0.9, "extracted_entities": entities}
+
     # Native-script pre-check: runs before (and independent of) translation.
     if _match_any(NATIVE_SCHEME_DETAIL_PATTERNS, query):
         return {"intent": "scheme_search", "confidence": 0.85, "extracted_entities": entities}
@@ -182,6 +224,8 @@ def classify(query: str) -> dict:
         return {"intent": "document_upload", "confidence": 0.85, "extracted_entities": entities}
     if _match_any(NATIVE_SCHEME_SEARCH_PATTERNS, query):
         return {"intent": "scheme_search", "confidence": 0.85, "extracted_entities": entities}
+    if _match_any(NATIVE_TOPIC_PATTERNS, query):
+        return {"intent": "scheme_search", "confidence": 0.8, "extracted_entities": entities, "topic_only": True}
 
     if _match_any(SCHEME_DETAIL_PATTERNS, query):
         return {"intent": "scheme_search", "confidence": 0.9, "extracted_entities": entities}
@@ -198,6 +242,9 @@ def classify(query: str) -> dict:
     if _match_any(SCHEME_SEARCH_PATTERNS, query):
         return {"intent": "scheme_search", "confidence": 0.9, "extracted_entities": entities}
 
+    if _match_any(TOPIC_PATTERNS, query):
+        return {"intent": "scheme_search", "confidence": 0.8, "extracted_entities": entities, "topic_only": True}
+
     # No trigger phrase, but the message names a scheme we know: it is a scheme question.
     # "matched_schemes" lets the caller fetch exactly those schemes.
     named = find_schemes_in(query)
@@ -209,7 +256,8 @@ def classify(query: str) -> dict:
             "matched_schemes": named,
         }
 
-    return {"intent": "out_of_scope", "confidence": 0.5, "extracted_entities": entities}
+    # Not recognised and not clearly off-topic: let the understanding layer or retrieval decide.
+    return {"intent": "unknown", "confidence": 0.3, "extracted_entities": entities}
 
 
 if __name__ == "__main__":

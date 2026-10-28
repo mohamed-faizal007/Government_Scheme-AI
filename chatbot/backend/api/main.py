@@ -455,8 +455,9 @@ def _understand_with_llm(message: str, language: str, session: dict) -> Optional
     """Run the LLM understanding layer on a message the router could not classify.
 
     Returns {"direct": {...}} for replies built from fixed templates, {"intent", "query", "scheme_ids",
-    "slots"} to run the existing pipeline, or None to fall back to the plain refusal. The model's text
-    is only used as a retrieval query (sanitised) or, for clarify, as a question to the user.
+    "slots"} to run the existing pipeline, {"refuse": True} when the model says it is off-topic, or None
+    when the layer is unavailable, capped or failed (the caller then runs plain retrieval + the citation
+    guard). The model's text is only used as a retrieval query (sanitised) or, for clarify, as a question.
     """
     last_schemes = session["last_schemes"]
     result = nlu.understand(message, language, session["history"], [s["name"] for s in last_schemes], session)
@@ -474,11 +475,11 @@ def _understand_with_llm(message: str, language: str, session: dict) -> Optional
     if result.intent == "document_upload" or result.intent == "document_help":
         return _direct(translate(DOCUMENT_UPLOAD_PROMPT, source_lang="en", target_lang=tl), "document_upload")
     if result.intent == "out_of_scope":
-        return None
+        return {"refuse": True}
 
     query = nlu.safe_query(result.rewritten_query_en)
     if query is None:
-        return None  # empty or instruction-like: treat as out of scope
+        return {"refuse": True}  # empty or instruction-like: treat as out of scope
 
     slots = result.profile_slots.present()
     asks_to_qualify = bool(_QUALIFY_RE.search(message) or _QUALIFY_RE.search(query))
@@ -618,9 +619,11 @@ def _process_message(
     # trusting the translation.
     matched_schemes = []
     native = classify(message) if language != "en" else None
-    if native and native["intent"] != "out_of_scope":
+    topic_only = False  # routed only by a scheme-domain word, so it may just be an answer to a slot question
+    if native and native["intent"] not in ("out_of_scope", "unknown"):
         intent = native["intent"]
         entities = native["extracted_entities"]
+        topic_only = native.get("topic_only", False)
     elif _is_translation_failed(message, classification_query, language):
         intent = "scheme_search"
         entities = {}
@@ -629,9 +632,10 @@ def _process_message(
         intent = classification["intent"]
         entities = classification["extracted_entities"]
         matched_schemes = classification.get("matched_schemes", [])
+        topic_only = classification.get("topic_only", False)
 
     # A plain slot-filling answer ("I am 30 years old") has no intent
-    # trigger phrases and would otherwise fall to out_of_scope. If the bot's
+    # trigger phrases and would otherwise fall to unknown. If the bot's
     # previous message was an eligibility slot-filling question, treat this
     # message as a continuation of that flow regardless of what the
     # classifier says.
@@ -639,12 +643,14 @@ def _process_message(
     # full sentence are applied first so "I am female" still fills gender.
     _apply_entities(profile, entities)
     asked_slot = session.get("last_slot_asked")
+    if asked_slot is not None and topic_only:
+        intent = "unknown"  # "I am a woman" answers the pending question; it is not a new search
     topic_change = asked_slot is not None and bool(TOPIC_CHANGE_RE.match(classification_query))
     if topic_change:
         # "actually, for education" swaps the topic and keeps the flow; it is not a slot answer.
         session["eligibility_query"] = _topic_change_query(classification_query)
         intent = "eligibility_check"
-    elif asked_slot is not None and intent in ("out_of_scope", "eligibility_check"):
+    elif asked_slot is not None and intent in ("unknown", "out_of_scope", "eligibility_check"):
         if intent == "eligibility_check":  # a fresh eligibility question replaces the stored one
             session["eligibility_query"] = message
             session["slot_failures"] = {}
@@ -664,7 +670,7 @@ def _process_message(
     rag_query = classification_query if language == "en" else message  # typo-fixed English, else as typed
     last_schemes = session["last_schemes"]
     session_dependent = False  # True once the answer depends on earlier turns: never cached
-    if intent in ("scheme_search", "out_of_scope") and session.get("last_slot_asked") is None:
+    if intent in ("scheme_search", "unknown") and session.get("last_slot_asked") is None:
         needs_names = bool(last_schemes) or is_detail_request(classification_query)
         named = matched_schemes or (find_schemes_in(classification_query) if needs_names else [])
         if is_followup(classification_query, last_schemes, bool(named)):
@@ -678,14 +684,19 @@ def _process_message(
             # "Tell me more about <exact scheme name>": fetch that scheme, not whatever ranks near it.
             scheme_ids = [s["id"] for s in named[:2]]
 
-    # Nothing above understood the message: ask the LLM layer (None on any failure -> refusal below).
+    # No rule understood the message: ask the LLM layer. When it is unavailable, capped or failed, run the
+    # normal retrieval + generation instead; the citation guard still replaces an ungrounded answer.
     direct = None
-    if intent == "out_of_scope" and session.get("last_slot_asked") is None:
+    if intent == "unknown" and session.get("last_slot_asked") is None:
         understood = _understand_with_llm(message, language, session)
-        if understood and "direct" in understood:
+        if understood is None:
+            intent = "scheme_search"
+        elif understood.get("refuse"):
+            intent = "out_of_scope"
+        elif "direct" in understood:
             direct = understood["direct"]
             intent = direct["intent"]
-        elif understood:
+        else:
             session_dependent = True  # the LLM rewrote the question using the chat history
             intent, rag_query, scheme_ids = understood["intent"], understood["query"], understood["scheme_ids"]
             _apply_nlu_slots(profile, understood["slots"])

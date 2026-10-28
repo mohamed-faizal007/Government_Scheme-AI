@@ -334,7 +334,7 @@ def test_typo_tolerance_without_the_llm():
     assert all(a != "out_of_scope" for a in after), [(m, a) for m, a in zip(TYPO_MESSAGES, after) if a == "out_of_scope"]
     assert sum(a != "out_of_scope" for a in after) > sum(b != "out_of_scope" for b in before)
     for m in TYPO_CONTROLS:  # off-topic typos must stay off-topic
-        assert classify(fix_typos(m))["intent"] == "out_of_scope", m
+        assert classify(fix_typos(m))["intent"] in ("out_of_scope", "unknown"), m  # never a scheme search
 
 
 def test_typo_message_runs_the_pipeline_with_the_layer_off():
@@ -451,13 +451,18 @@ def test_router_handled_messages_never_reach_the_llm():
     assert result["_nlu_called"] is False and result["intent"] == "scheme_search"
 
 
-def test_pipeline_falls_back_to_refusal_when_the_layer_fails():
-    def fake_understand(*a, **k):
-        return None
+def test_pipeline_falls_back_to_retrieval_when_the_layer_fails():
+    # Layer unavailable/capped/failed: the unknown message runs retrieval + generation (faked here, no
+    # Groq); the citation guard, not an immediate refusal, decides the outcome.
+    asked = []
 
-    with patched((api.nlu, "understand", fake_understand)):
+    def fake_rag(query, **kwargs):
+        asked.append(query)
+        return {"answer": "Fake answer", "sources": [], "confidence": "low", "language": "en"}
+
+    with patched((api.nlu, "understand", lambda *a, **k: None), (api, "rag_answer", fake_rag)):
         result = _process_message("blah qwerty zxcv", None, None)
-    assert result["answer"] == OUT_OF_SCOPE_MESSAGE
+    assert asked == ["blah qwerty zxcv"] and result["answer"] == "Fake answer"
 
 
 # --- live (needs GEMINI_API_KEY) --------------------------------------------------------------

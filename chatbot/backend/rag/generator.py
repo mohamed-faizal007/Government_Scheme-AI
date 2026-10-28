@@ -7,6 +7,7 @@ import re
 
 from ..llm.base import ContextTooLargeError, ProviderUnavailable
 from ..llm.factory import get_llm
+from ..nlu.llm_understander import redact
 
 logger = logging.getLogger(__name__)
 
@@ -119,7 +120,7 @@ def _build_prompt(query: str, retrieved_schemes: list[dict]) -> str:
 
 {context}
 
-User question: {query}"""
+User question: {redact(query)}"""  # ID-like numbers are masked before any provider sees them
 
 
 def _estimate_tokens(system_prompt: str, prompt: str) -> int:
@@ -194,15 +195,20 @@ def generate(
         }
 
     answer, confidence = _parse_response(raw)
+    provider_name = getattr(llm, "last_provider", "") or "unknown"  # logged only, never part of the reply
 
     # Grounding check: an answer that names none of the retrieved schemes was produced
     # from the LLM's own knowledge (e.g. "Paris"), not from context. This applies at any
     # reported confidence — the LLM labelled "Paris" as "medium" in the 2026-10-10 eval.
     if not any(names_scheme(answer, hit.get("scheme_name", "")) for hit in retrieved_schemes):
-        logger.warning("generator: citation_guard=declined (answer names no retrieved scheme, confidence=%s)", confidence)
+        logger.warning(
+            "generator: provider=%s citation_guard=declined (answer names no retrieved scheme, confidence=%s)",
+            provider_name,
+            confidence,
+        )
         answer = DECLINE_MESSAGE
     else:
-        logger.info("generator: citation_guard=passed")
+        logger.info("generator: provider=%s citation_guard=passed", provider_name)
 
     declined = DECLINE_MESSAGE.strip().lower() in answer.strip().lower()
     sources = []

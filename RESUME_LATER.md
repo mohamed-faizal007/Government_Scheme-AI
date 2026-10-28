@@ -46,6 +46,12 @@ PYTHONPATH=. venv/Scripts/python.exe -m chatbot.evaluation.test_followup_regress
 ```
 Open item: fuzzy (edit-distance) typo matching in `router/typos.py`.
 
+## State as of 2026-10-28 (Gemini as primary generator, NOT committed)
+
+- New chain: Gemini (`GEMINI_MODEL`, `GEMINI_MODEL_FALLBACK`) -> Groq 20b -> Groq 120b -> Ollama. Switch with env `GENERATION_PRIMARY=gemini|groq` (default gemini; `groq` keeps the old order Groq 20b -> 120b -> Gemini -> Ollama). Gemini generation timeout is `GEMINI_GEN_TIMEOUT` (6 s); a timeout/429/503/504 goes to Groq at once. Understanding and generation share one daily counter (`GEMINI_DAILY_CAP`) and one circuit breaker. Details: "Answer generation chain" in `PROJECT_HANDOFF.md`.
+- Verified: offline fake-based tests only (`chatbot/evaluation/test_generation_chain_offline.py`), no live call.
+- **NOT verified live:** Gemini as the primary generator. Its latency, citation rate and answer quality compared with Groq are unknown. Before relying on it, run `eval_rag` with `GENERATION_PRIMARY=gemini` and with `groq` and compare; if Gemini is worse, set `GENERATION_PRIMARY=groq`.
+
 ## Pending work
 
 1. Make the citation guard tolerate model abbreviations of scheme names ("Amma Two Wheeler Scheme", "(AAN)"); re-run the eval.

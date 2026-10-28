@@ -65,7 +65,7 @@ const TRUST = [
   {
     icon: 'file',
     title: 'Your documents are not stored',
-    text: 'Uploaded PDFs are deleted as soon as they are read. Only the extracted details stay in your session, in memory. An AI service reads the document text to pull out those details.',
+    text: 'Uploaded PDFs are deleted as soon as they are read. Only the extracted details (with just the last 4 digits of any ID number) stay in your session, in memory. An AI service reads the document text to pull out those details.',
   },
 ]
 
@@ -151,8 +151,9 @@ export function Trust() {
           ))}
         </div>
         <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-ink-muted">
-          Questions the app cannot understand on its own are processed by an external AI service, which sees only that
-          message and the last few turns of the chat. It never sees uploaded documents.
+          Your questions, and the scheme text retrieved for them, are processed by external AI services (Google Gemini
+          and Groq) to write the answers. Uploaded documents are read by an AI service to extract fields, then deleted;
+          only the last 4 digits of an ID number are kept.
         </p>
       </div>
     </section>

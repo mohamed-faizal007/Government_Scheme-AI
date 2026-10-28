@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     gemini_model_order: str = Field(default="", alias="GEMINI_MODEL_ORDER")
     gemini_session_cap: int = Field(default=20, alias="GEMINI_SESSION_CAP")
     gemini_daily_cap: int = Field(default=200, alias="GEMINI_DAILY_CAP")
+    # Answer generation: GENERATION_PRIMARY=gemini (default) tries Gemini first, "groq" keeps Groq first.
+    generation_primary: str = Field(default="gemini", alias="GENERATION_PRIMARY")
+    gemini_gen_timeout: float = Field(default=6.0, alias="GEMINI_GEN_TIMEOUT")  # seconds per generation request
     # ANSWER_CACHE=on/off: reuse guard-passed answers to repeated questions (see backend/cache).
     answer_cache: bool = Field(default=True, alias="ANSWER_CACHE")
 
@@ -38,6 +41,11 @@ class Settings(BaseSettings):
     def _blank_fallback_model(cls, v):
         # A blank GROQ_FALLBACK_MODEL= line in .env must not disable the fallback.
         return v.strip() if isinstance(v, str) and v.strip() else "openai/gpt-oss-120b"
+
+    @field_validator("generation_primary", mode="before")
+    @classmethod
+    def _known_primary(cls, v):
+        return "groq" if isinstance(v, str) and v.strip().lower() == "groq" else "gemini"
 
     class Config:
         env_file = str(ENV_PATH)

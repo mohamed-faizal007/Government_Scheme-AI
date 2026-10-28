@@ -251,6 +251,16 @@ Note: `overview.description` is populated for 100% of files (orphan content capt
 
 ---
 
+## Answer generation chain (Gemini primary)
+
+- Order, set by env `GENERATION_PRIMARY` (`gemini` default, `groq`; any other value means gemini): `gemini` -> Groq 20b -> Groq 120b -> Ollama. With `groq`: Groq 20b -> Groq 120b -> Gemini -> Ollama (the previous order). Built in `llm/factory.py`; `llm/chain.py` records which provider answered.
+- Gemini generation (`llm/gemini_provider.py`): `GEMINI_MODEL`, then `GEMINI_MODEL_FALLBACK`. Each request gets `GEMINI_GEN_TIMEOUT` seconds (default 6). A timeout, 429, 503 or 504 hands over to Groq at once, with no retry and no second Gemini model; a daily-quota 429 blocks that model until the Pacific-midnight reset and tries the other Gemini model. Automatic function calling disabled, minimal thinking, as in the understanding layer.
+- Shared with the understanding layer: the daily counter (`GEMINI_DAILY_CAP`, `nlu.reserve_daily`) and the circuit breaker (3 consecutive transient failures -> Gemini skipped for 60 s). Generation does not use the per-session cap.
+- Sent to Gemini: the same system prompt and prompt as Groq (question + retrieved scheme text, same token budget, same exact-scheme-name citation instruction). ID-like numbers in the question are masked for every provider (`redact` in `rag/generator.py`). Uploaded-document text is never part of this path.
+- The citation guard runs on every provider's answer. The provider that answered is in the log line `generator: provider=<name> citation_guard=passed|declined`, never in the reply. The answer cache stores only guard-approved answers with sources, whichever provider wrote them.
+- Offline tests: `chatbot/evaluation/test_generation_chain_offline.py` (fake Gemini and Groq clients, Ollama on an unreachable port): Gemini success, timeout/503/429/504 to Groq, Groq 20b -> 120b, everything failing (busy message en/hi/ta), breaker, shared daily cap, `GENERATION_PRIMARY=groq` order, cache.
+- **NOT verified live.** Gemini as the primary generator has never been run against the real API. Its latency, its citation rate and its answer quality compared with Groq are unknown, and no figures for them exist yet. To check: run `python -m chatbot.evaluation.eval_rag` once with `GENERATION_PRIMARY=gemini` and once with `groq` and compare the results. If Gemini turns out worse, set `GENERATION_PRIMARY=groq` (no code change).
+
 ## Gemini understanding layer
 
 `chatbot/backend/nlu/llm_understander.py` (+ `templates.py`). Called ONLY when the deterministic router returns `out_of_scope` by default (its only low-confidence result), no eligibility slot question is pending, and the follow-up code did not resolve the message. Messages the router already handles never reach it.
@@ -354,8 +364,8 @@ Then tell me what you want to do next.
 | Vector Store | ChromaDB persistent local (`chatbot/data/chroma_db/`) |
 | Embeddings | `intfloat/multilingual-e5-small` (handles Tamil/Hindi/English natively) |
 | Retrieval | Hybrid — MongoDB metadata filter + ChromaDB semantic search |
-| LLM Primary | Groq, model via `GROQ_MODEL` env var |
-| LLM Fallback | Groq gpt-oss-120b on 429, then Ollama `gemma3:4b` (the installed model), controlled fallback only |
+| LLM Primary | Gemini (`GEMINI_MODEL`, then `GEMINI_MODEL_FALLBACK`) when `GENERATION_PRIMARY=gemini` (default); NOT yet verified live, see "Answer generation chain" |
+| LLM Fallback | Groq (`GROQ_MODEL` 20b, then `GROQ_FALLBACK_MODEL` 120b), then Ollama `gemma3:4b`. `GENERATION_PRIMARY=groq` restores Groq 20b -> Groq 120b -> Gemini -> Ollama |
 | LLM Architecture | Factory pattern (`llm/factory.py`) |
 | Embedding Architecture | Abstraction layer (`embeddings/base.py`) |
 | OCR | PyMuPDF (text PDFs) + PaddleOCR (scanned fallback) |
@@ -384,6 +394,8 @@ GEMINI_SESSION_CAP=20       ← optional, API requests per session
 GEMINI_DAILY_CAP=200        ← optional, set to ~80% of the daily limit in AI Studio (the real limit has not been read yet)
 GEMINI_MODEL_EXTRA=gemini-3.5-flash   ← optional non-lite last resort
 GEMINI_MODEL_ORDER=         ← optional comma-separated override of the whole order
+GENERATION_PRIMARY=gemini   ← optional: gemini (default) or groq, which answer generator goes first
+GEMINI_GEN_TIMEOUT=6        ← optional, seconds per Gemini generation request
 ```
 
 `.env` must be in `.gitignore` — never commit API keys.

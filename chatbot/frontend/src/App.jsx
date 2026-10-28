@@ -35,6 +35,7 @@ function errorMessage(text, retryText) {
 }
 
 function summarizeUpload(data) {
+  if (data.message) return data.message
   const filled = [...data.high_confidence_fills, ...data.needs_confirmation]
   if (filled.length === 0) return "I couldn't confidently extract any fields from that document."
   return `I read your document and updated: ${filled.join(', ')}.${
@@ -84,6 +85,7 @@ export default function App() {
           confidence: data.confidence,
           sources: data.sources || [],
           intent: data.intent,
+          quickReplies: data.quick_replies || [],
         },
       ])
       return
@@ -105,6 +107,7 @@ export default function App() {
         confidence: data.confidence,
         sources: data.sources || [],
         intent: data.intent,
+        quickReplies: data.quick_replies || [],
       },
     ])
     setProfile(data.profile || {})
@@ -191,6 +194,7 @@ export default function App() {
       const formData = new FormData()
       formData.append('file', file)
       formData.append('session_id', sessionId)
+      formData.append('language', language)
       const { data } = await axios.post(`${API_BASE}/document/upload`, formData)
 
       setProfile(data.profile || {})

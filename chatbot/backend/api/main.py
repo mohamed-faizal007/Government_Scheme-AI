@@ -23,7 +23,8 @@ from ..database.load_chroma import COLLECTION_NAME as CHROMA_COLLECTION_NAME
 from ..database.mongo_client import get_db, get_schemes_collection
 from ..documents.extractor import autofill_profile, extract_fields
 from ..documents.ocr import extract_text
-from ..eligibility.rules_engine import _is_junk, check_eligibility
+from ..eligibility import presentation
+from ..eligibility.rules_engine import check_eligibility
 from ..eligibility.slot_filler import QUESTIONS, get_next_slot
 from ..eligibility.slot_parser import EXAMPLES, is_skip, parse_slot_reply
 from ..eligibility.user_profile import UserProfile
@@ -117,6 +118,7 @@ def _new_session() -> dict:
         "slot_failures": {},
         "skipped_slots": set(),
         "last_schemes": [],  # [{"id", "name"}] the bot last cited; resolves "it" / "the first one"
+        "awaiting_topic": False,  # the bot asked "which area?" and the next reply names it
     }
 
 
@@ -165,6 +167,7 @@ class ChatResponse(BaseModel):
     session_id: str
     profile: dict = Field(default_factory=dict)
     eligibility_results: list = Field(default_factory=list)
+    quick_replies: list = Field(default_factory=list)  # [{"label", "value"}] chips to show under the answer
 
 
 class FeedbackRequest(BaseModel):
@@ -246,12 +249,9 @@ _LEADING_FILLER_RE = re.compile(r"^\s*(?:actually|instead|rather|change(?: it)? 
 _TOPICLESS_RE = re.compile(
     r"am i eligible|do i qualify|can i apply|check eligibility|eligible|for|any|a|an|the|my|me|i|am|to|"
     r"government|govt|central|state|scheme|schemes|yojana|yojna|benefit|benefits|which|what|is|are|there|"
-    r"available|can|apply|qualify|get|anything|something|some|please|schemes?",
+    r"available|can|apply|qualify|get|anything|something|some|please|schemes?|"
+    r"show|list|see|tell|not|ineligible|dont|don|t|qualified",
     re.IGNORECASE,
-)
-NO_TOPIC_NOTE = (
-    "You didn't name a topic, so I searched for schemes matching your profile ({profile}) "
-    "instead of a specific area like housing or education."
 )
 
 
@@ -265,16 +265,6 @@ def _has_topic(question: str) -> bool:
         return True  # cannot judge native-script wording; assume a topic
     words = re.findall(r"[a-z]+", question.lower())
     return any(not _TOPICLESS_RE.fullmatch(w) for w in words)
-
-
-def _profile_search_query(profile: UserProfile) -> tuple[str, str]:
-    """A generic query built from the profile, plus a readable description of what it used."""
-    category = {"sc": "SC", "st": "ST", "obc": "OBC", "general": "general category"}.get(
-        (profile.category or "").lower(), profile.category
-    )
-    query = "schemes" + (f" for {category}" if category else "") + (f" in {profile.state}" if profile.state else "")
-    used = ", ".join(x for x in (category, profile.state) if x) or "no details given"
-    return query, used
 
 
 def _slot_prompt(session: dict, slot: str) -> str:
@@ -309,7 +299,22 @@ def _fill_asked_slot(session: dict, profile: UserProfile, text: str) -> None:
             session["skipped_slots"].add(slot)  # never loop forever
 
 
-def _handle_eligibility(profile: UserProfile, message: str, language: str, session: dict) -> dict:
+def _retrieve_for_eligibility(query: str, profile: UserProfile, top_k: int) -> list:
+    """Hits for `query`, plus the same search narrowed to the user's state (central schemes carry no state)."""
+    hits = list(retrieve(query, top_k=top_k))
+    if profile.state:
+        hits = list(retrieve(f"{query} in {profile.state}", top_k=top_k)) + hits
+    seen, unique = set(), []
+    for hit in hits:
+        if hit["scheme_name"] not in seen:
+            seen.add(hit["scheme_name"])
+            unique.append(hit)
+    return unique
+
+
+def _handle_eligibility(
+    profile: UserProfile, message: str, language: str, session: dict, topic_key: Optional[str] = None
+) -> dict:
     slot = get_next_slot(profile, session["skipped_slots"])
     session["last_slot_asked"] = slot
     if slot is not None:
@@ -322,80 +327,67 @@ def _handle_eligibility(profile: UserProfile, message: str, language: str, sessi
 
     # Search with the original question, not the last slot reply ("female"). Cleared once used.
     stored_query = session.get("eligibility_query") or message
-    no_topic = not _has_topic(stored_query)
-    if no_topic:
-        search_query, used = _profile_search_query(profile)
-    else:
-        search_query = stored_query
+    show_not = presentation.wants_not_eligible(message) or presentation.wants_not_eligible(stored_query)
+    note = None
+    topic = topic_key
+    if topic is None and not _has_topic(stored_query):
+        topic = presentation.topic_hint(profile)  # farmer -> agriculture, student -> education
+        if topic is None:
+            session["awaiting_topic"] = True
+            session["eligibility_query"] = None
+            session["last_slot_asked"] = None
+            question, chips = presentation.topic_question(language)
+            return {
+                "answer": question,
+                "sources": [],
+                "confidence": "medium",
+                "eligibility_results": [],
+                "quick_replies": chips,
+            }
+        note = presentation.hint_note(profile.occupation or topic, topic, language)
+    session["awaiting_topic"] = False
     session["eligibility_query"] = None
     session["last_slot_asked"] = None
-    candidates = retrieve(search_query, top_k=3)
-    if not candidates:
-        return {
-            "answer": translate(
-                "I couldn't find a matching scheme to check eligibility against. "
-                "Please check myscheme.gov.in.",
-                source_lang="en",
-                target_lang=language,
-            ),
-            "sources": [],
-            "confidence": "low",
-            "eligibility_results": [],
-        }
 
-    lines = []
-    sources = []
-    eligibility_results = []
-    any_unverifiable = False
-    seen_schemes = set()
-    for hit in candidates:
-        scheme_name = hit["scheme_name"]
-        if scheme_name in seen_schemes:
-            continue
-        seen_schemes.add(scheme_name)
-
-        result = check_eligibility(profile, hit["scheme"])
-        unverifiable = [u for u in result["unverifiable_conditions"] if not _is_junk(u)]
-        if unverifiable:
-            any_unverifiable = True
-
-        if result["eligible"]:
-            lines.append(f"You appear to be ELIGIBLE for {scheme_name}.")
-            reasons = []
-        else:
-            reasons = result["failed_conditions"] or ["some conditions are not met"]
-            lines.append(f"You do NOT appear to be eligible for {scheme_name} ({'; '.join(reasons)}).")
-
-        if unverifiable:
-            lines.append(
-                f"Some conditions for {scheme_name} could not be verified automatically: "
-                + "; ".join(unverifiable)
-            )
-
-        eligibility_results.append(
-            {
-                "scheme_name": scheme_name,
-                "eligible": result["eligible"],
-                "reasons": reasons + unverifiable,
+    if topic:
+        candidates = _retrieve_for_eligibility(presentation.topic_query(topic), profile, top_k=15)
+        candidates = [h for h in candidates if presentation.scheme_matches_topic(h["scheme"], topic)]
+        if not candidates:
+            return {
+                "answer": presentation.no_match_text(topic, language),
+                "sources": [],
+                "confidence": "low",
+                "eligibility_results": [],
             }
-        )
+    else:
+        candidates = _retrieve_for_eligibility(stored_query, profile, top_k=8)
+        if not candidates:
+            return {
+                "answer": presentation.no_result_text(language),
+                "sources": [],
+                "confidence": "low",
+                "eligibility_results": [],
+            }
 
-        sources.append(
-            {"scheme_name": scheme_name, "section": "eligibility", "source_file": hit["source_file"]}
-        )
+    entries = [presentation.make_entry(hit, check_eligibility(profile, hit["scheme"]), profile) for hit in candidates]
+    answer_text, shown = presentation.render_answer(entries, language, show_not=show_not, note=note)
 
-    if no_topic:
-        lines.insert(0, NO_TOPIC_NOTE.format(profile=used))
-    answer_text = " ".join(lines)
-    confidence = "medium" if any_unverifiable else "high"
+    sources = [
+        {"scheme_name": e["scheme_name"], "section": "eligibility", "source_file": e["hit"]["source_file"]} for e in shown
+    ]
+    eligibility_results = [
+        {
+            "scheme_name": e["scheme_name"],
+            "eligible": e["eligible"],
+            "status": e["status"],
+            "reasons": e["failed"] if e["status"] == "not" else e["conditions"],
+        }
+        for e in shown
+    ]
+    confidence = "medium" if any(e["status"] != "eligible" for e in shown) else "high"
 
     return {
-        "answer": translate(
-            answer_text,
-            source_lang="en",
-            target_lang=language,
-            schemes=[src.get("scheme_name", "") for src in sources],
-        ),
+        "answer": answer_text,  # fixed en/hi/ta templates: scheme names are inserted verbatim, never translated
         "sources": sources,
         "confidence": confidence,
         "eligibility_results": eligibility_results,
@@ -573,6 +565,24 @@ def _process_message(
     sid, session = _get_session(session_id)
     profile: UserProfile = session["profile"]
 
+    # The bot asked "which area?" (no topic, no occupation hint): this reply names it, so finish the check.
+    if session.pop("awaiting_topic", False):
+        topic = presentation.parse_topic_reply(message)
+        if topic:
+            result = _handle_eligibility(profile, message, language, session, topic_key=topic)
+            _record_turn(session, message, result["answer"], "eligibility_check")
+            return {
+                "answer": result["answer"],
+                "sources": result["sources"],
+                "confidence": result["confidence"],
+                "intent": "eligibility_check",
+                "language": language,
+                "session_id": sid,
+                "profile": profile.model_dump(),
+                "eligibility_results": result["eligibility_results"],
+                "quick_replies": result.get("quick_replies", []),
+            }
+
     # Greetings and thanks are answered from fixed templates, never by an LLM. Skipped while the bot is
     # waiting for an eligibility answer, so a slot reply is never mistaken for smalltalk.
     smalltalk_hit = smalltalk.match(message) if session.get("last_slot_asked") is None else None
@@ -706,6 +716,7 @@ def _process_message(
                 session["skipped_slots"] = set()
 
     eligibility_results = []
+    quick_replies: list = []
     cacheable = False
     used_schemes: list = []
     if direct is not None:
@@ -723,6 +734,7 @@ def _process_message(
         result = _handle_eligibility(profile, message, language, session)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
         eligibility_results = result["eligibility_results"]
+        quick_replies = result.get("quick_replies", [])
     elif intent == "document_upload":
         answer_text = translate(DOCUMENT_UPLOAD_PROMPT, source_lang="en", target_lang=language)
         sources, confidence = [], "medium"
@@ -761,6 +773,7 @@ def _process_message(
         "session_id": sid,
         "profile": profile.model_dump(),
         "eligibility_results": eligibility_results,
+        "quick_replies": quick_replies,
     }
 
 
@@ -862,7 +875,9 @@ def chat(request: ChatRequest):
 
 
 @app.post("/document/upload")
-async def upload_document(file: UploadFile = File(...), session_id: Optional[str] = Form(None)):
+async def upload_document(
+    file: UploadFile = File(...), session_id: Optional[str] = Form(None), language: Optional[str] = Form(None)
+):
     if not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported.")
 
@@ -884,6 +899,7 @@ async def upload_document(file: UploadFile = File(...), session_id: Optional[str
 
     return {
         "session_id": sid,
+        "message": presentation.upload_message(fill_result, language if language in ("en", "hi", "ta") else "en"),
         "fields": extracted["fields"].model_dump(),
         "confidence": extracted["confidence"],
         "profile": fill_result["updated_profile"].model_dump(),

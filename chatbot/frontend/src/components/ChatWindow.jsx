@@ -115,6 +115,20 @@ export default function ChatWindow({
                 compact={compact}
                 onRetry={msg.retryText && onRetry ? () => onRetry(msg.retryText, msg.id) : undefined}
               />
+              {index === messages.length - 1 && msg.quickReplies?.length > 0 && !isTyping && (
+                <div className="flex flex-wrap gap-2 pl-[2.625rem] pt-2" role="group" aria-label="Quick replies">
+                  {msg.quickReplies.map((chip) => (
+                    <button
+                      key={chip.value}
+                      type="button"
+                      onClick={() => onExampleClick?.(chip.value)}
+                      className="rounded-full border border-line bg-surface px-3 py-1.5 text-sm font-medium text-ink shadow-card transition-colors hover:border-ink-faint hover:bg-surface-2"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
+                </div>
+              )}
               {!compact &&
                 msg.role === 'assistant' &&
                 (msg.intent === 'scheme_search' || msg.intent === 'comparison') &&

@@ -246,6 +246,28 @@ Note: `overview.description` is populated for 100% of files (orphan content capt
 - Eligibility slot capture fix (2026-10-21): session `last_slot_asked` + `eligibility/slot_parser.py` interpret bare replies ("general", "30", "1.2 lakhs"); one re-ask with an example, then a skip offer, then auto-skip on the 3rd failure; "skip" accepted any time. Stray `*` stripped from translated answers. `eval_eligibility` still 95%.
 - Frontend redesign committed and pushed (9b66d37)
 - Eligibility lookup fix (2026-10-21): session `eligibility_query` holds the original question and drives the final search; topic swaps ("actually, for education") replace it, slot answers never do; no-topic questions search by profile (category/state) and say so. Top-3 retrieval can still include one weak hit.
+- Follow-up routing and language fixes (2026-10-27, commit 406e727): router patterns for "tell me more / details of / who can apply / how to apply / documents needed" (en/hi/ta); a message naming a known scheme (`router/scheme_names.py`, normalised like the citation guard, names made only of generic words excluded) goes to scheme search; session memory of the last 5 cited schemes (`session["last_schemes"]`, `router/followup.py`) so "who can apply for it?" / "the first one" retrieve by id (`retriever.fetch_by_ids`); language rule in `translator.resolve_language` (typed text of 3+ words at >= 0.9 detection confidence is answered in its own language, short text and button clicks use the pill; the frontend sends an optional `source`: "typed" | "button"); the translator now sends one sentence per model call so no sentence is dropped. Tests: `chatbot/evaluation/test_followup_regression.py` (8).
+- Gemini understanding layer (2026-10-27, `chatbot/backend/nlu/`): see "Gemini understanding layer" below.
+
+---
+
+## Gemini understanding layer
+
+`chatbot/backend/nlu/llm_understander.py` (+ `templates.py`). Called ONLY when the deterministic router returns `out_of_scope` by default (its only low-confidence result), no eligibility slot question is pending, and the follow-up code did not resolve the message. Messages the router already handles never reach it.
+
+- Input sent to Gemini: the message, up to 6 recent chat messages (3 exchanges, 300 chars each), the last scheme names. Aadhaar-style numbers, PAN-style ids, any run of 9+ digits and emails are masked first. Uploaded-document text never goes through this path. Message text and the key are never logged (only call counts and the intent).
+- Output: strict JSON validated with Pydantic (`Understanding`: intent, rewritten_query_en, scheme_name, profile_slots, clarifying_question, language). Extra fields, unknown intents and out-of-range slots are rejected. The API schema is sent without `additionalProperties` (the API rejects it); the reply is still validated strictly.
+- Use of the result: `rewritten_query_en` is used only for scheme_search / scheme_detail / eligibility, capped at 300 chars and dropped if it looks like instructions. smalltalk / clarify-fallback / unknown-scheme replies are fixed templates (en/hi/ta); out_of_scope gets the existing refusal; clarify shows the model's (filtered, translated) question and the turn stays in the session history so the next reply continues. Stated profile slots plus a qualify/apply question run the eligibility engine whatever intent came back. `scheme_name` is matched with `scheme_names.lookup_scheme_name` and fetched by id; if it is not in the data the bot says so and lists the 3 closest names (it never shows an unrelated scheme as the one asked for). The LLM never writes scheme facts: answers still come from retrieval, generation and the citation guard.
+- **Live Gemini tests are PENDING.** On 2026-10-27 the free-tier API returned 503/504 for most calls on both Flash-Lite models for over an hour, so the 30-message live run, the live end-to-end test, the latency/tail measurement and the "minimal thinking helps?" comparison could not be judged. Run them when Gemini is back: `PYTHONPATH=. python -m chatbot.evaluation.test_nlu_layer` (from the repo root; the two `test_live_*` tests print `PENDING` instead of failing while the service is down). Then re-run `python -m chatbot.evaluation.eval_rag` to see how many of the 50 queries reached the LLM and whether out-of-scope is still 10/10.
+- Model order: `GEMINI_MODEL_ORDER` (comma-separated) if set, else `GEMINI_MODEL`, `GEMINI_MODEL_FALLBACK`, `GEMINI_MODEL_EXTRA` (default `gemini-3.5-flash`, non-lite, last resort); only after a 404 does it list models and add the oldest `*flash-lite*` text model. A 429/5xx moves on to the next model immediately.
+- Circuit breaker: 3 consecutive failures (429/5xx/timeout) switch Gemini off for 60 s (`BREAKER_THRESHOLD`, `BREAKER_COOLDOWN_S`); skipped messages go straight to the old refusal with no wait. Automatic function calling is disabled.
+- Typo tolerance without the LLM (`router/typos.py`): "tamilnadu" -> "Tamil Nadu" (all multi-word states) and fuzzy matching of ~40 scheme keywords ("shcemes", "elegible", "requierd"), same first letter, 4+ letters, Latin text only; applied to the English classification and retrieval query. Tests: `test_typo_*` in `test_nlu_layer.py` (10 typo messages: 1/10 routed before, 10/10 after; 5 off-topic typo messages stay out of scope).
+- Model (earlier notes): `gemini-2.5-flash-lite` is no longer offered for this key (404). `gemini-2.5-flash-lite` returns 404 for this key (no longer offered to new users); `gemini-3.1-flash-lite` and `gemini-3.5-flash-lite` work. Temperature 0, JSON mode, minimal thinking (`MINIMAL_THINKING`).
+- Timeouts: the API rejects deadlines under 10 s, so the SDK deadline is 10 s and a client-side cutoff of 8 s applies. One retry on 429 / 5xx / invalid JSON; a timeout is not retried.
+- Fallback: no key, cap reached, 404 on every model, 429/503/504 after the retry, timeout, invalid JSON or any exception -> `understand()` returns None and the chat gives today's out-of-scope refusal. It never raises.
+- Caps: `GEMINI_SESSION_CAP` (default 20 API requests per session) and `GEMINI_DAILY_CAP` (default 200 per process per day, a placeholder: set it to about 80% of the real daily limit shown in AI Studio). Both count every request, retries included. The daily counter is in memory and resets on restart.
+- Landing page trust copy states that unclear questions go to an external AI service and that uploaded documents do not.
+- Tests: `chatbot/evaluation/test_nlu_layer.py` (23 offline tests with a faked model call covering 503, 429, timeout, invalid JSON, schema violations, 404, missing key, caps, privacy, injection and every intent route; 2 live tests that need the key).
 
 ---
 
@@ -355,6 +377,13 @@ GROQ_MODEL=
 OLLAMA_MODEL=gemma3:4b
 CHROMA_PERSIST_PATH=chatbot/data/chroma_db
 UNSTRUCTURED_API_KEY=       ← already set, used by extraction pipeline
+GEMINI_API_KEY=             ← chatbot/.env only; blank disables the understanding layer
+GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_MODEL_FALLBACK=gemini-3.5-flash-lite
+GEMINI_SESSION_CAP=20       ← optional, API requests per session
+GEMINI_DAILY_CAP=200        ← optional, set to ~80% of the daily limit in AI Studio (the real limit has not been read yet)
+GEMINI_MODEL_EXTRA=gemini-3.5-flash   ← optional non-lite last resort
+GEMINI_MODEL_ORDER=         ← optional comma-separated override of the whole order
 ```
 
 `.env` must be in `.gitignore` — never commit API keys.

@@ -5,7 +5,7 @@ import json
 import logging
 import re
 
-from ..llm.base import ContextTooLargeError
+from ..llm.base import ContextTooLargeError, ProviderUnavailable
 from ..llm.factory import get_llm
 
 logger = logging.getLogger(__name__)
@@ -15,10 +15,12 @@ DECLINE_MESSAGE = (
     "MyScheme portal at myscheme.gov.in"
 )
 
-UNAVAILABLE_MESSAGE = (
-    "I'm currently unable to process your request. Please try again in a "
-    "moment or visit myscheme.gov.in for scheme information."
-)
+# Shown when every provider is rate-limited or down. Fixed text per language (never translated or cached).
+BUSY_MESSAGES = {
+    "en": "We're very busy right now. Please retry in a minute.",
+    "hi": "अभी बहुत अधिक अनुरोध आ रहे हैं। कृपया एक मिनट बाद फिर से कोशिश करें।",
+    "ta": "இப்போது மிகவும் பரபரப்பாக உள்ளது. தயவுசெய்து ஒரு நிமிடம் கழித்து மீண்டும் முயற்சிக்கவும்.",
+}
 
 # Groq's free tier caps a single request at 8,000 tokens/min per model, so the prompt is
 # budgeted well under that: per-scheme text is capped, the whole prompt is capped, and a
@@ -172,13 +174,23 @@ def generate(
                 logger.warning("generator: context too large at %d schemes, retrying with fewer", len(retrieved_schemes))
         if raw is None:
             raise ContextTooLargeError("prompt too large even at the smallest scheme count")
-    except Exception:
-        logger.exception("generator: LLM generation failed after all fallbacks")
+    except (ProviderUnavailable, ContextTooLargeError) as exc:
+        logger.warning("generator: every provider failed (%s), showing the busy message", exc)
         return {
-            "answer": UNAVAILABLE_MESSAGE,
+            "answer": BUSY_MESSAGES.get(language, BUSY_MESSAGES["en"]),
             "sources": [],
             "confidence": "low",
             "language": language,
+            "busy": True,
+        }
+    except Exception:
+        logger.exception("generator: LLM generation failed after all fallbacks")
+        return {
+            "answer": BUSY_MESSAGES.get(language, BUSY_MESSAGES["en"]),
+            "sources": [],
+            "confidence": "low",
+            "language": language,
+            "busy": True,
         }
 
     answer, confidence = _parse_response(raw)

@@ -58,3 +58,27 @@ def find_schemes_in(text: str, limit: int = 3) -> list[dict]:
             continue
         kept.append((norm, scheme_id, name))
     return [{"id": scheme_id, "name": name} for _, scheme_id, name in kept[:limit]]
+
+
+MIN_LOOKUP_CHARS = 8  # a partial name shorter than this ("Kisan") would match far too many schemes
+
+
+def lookup_scheme_name(name: str, limit: int = 2) -> list[dict]:
+    """Schemes matching a name given by someone else (the NLU layer), tolerating a partial name.
+
+    Exact normalised matches win. Otherwise a name of >= MIN_LOOKUP_CHARS that is contained in a
+    stored name ("Amma Two Wheeler Scheme" in "Amma Two Wheeler Scheme for Working Women") or
+    contains one matches, shortest stored name first. Returns [] when nothing matches.
+    """
+    target = _normalize_for_match(name or "")
+    if len(target) < MIN_NAME_CHARS:
+        return []
+    index = _load_index()
+    exact = [(n, i, d) for n, i, d in index if n == target]
+    if exact:
+        return [{"id": i, "name": d} for _, i, d in exact[:limit]]
+    if len(target) < MIN_LOOKUP_CHARS:
+        return []
+    partial = [(n, i, d) for n, i, d in index if target in n or n in target]
+    partial.sort(key=lambda entry: len(entry[0]))
+    return [{"id": i, "name": d} for _, i, d in partial[:limit]]

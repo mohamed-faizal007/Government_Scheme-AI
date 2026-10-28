@@ -22,6 +22,16 @@ class Settings(BaseSettings):
     myscheme_api_key: str = Field(default="", alias="MYSCHEME_API_KEY")
     sync_api_key: str = Field(default="", alias="SYNC_API_KEY")
     sync_scheduler_enabled: bool = Field(default=True, alias="SYNC_SCHEDULER_ENABLED")
+    # Gemini "understanding" layer (see backend/nlu). Blank key disables it.
+    gemini_api_key: str = Field(default="", alias="GEMINI_API_KEY")
+    gemini_model: str = Field(default="", alias="GEMINI_MODEL")
+    gemini_model_fallback: str = Field(default="", alias="GEMINI_MODEL_FALLBACK")
+    gemini_model_extra: str = Field(default="gemini-3.5-flash", alias="GEMINI_MODEL_EXTRA")
+    gemini_model_order: str = Field(default="", alias="GEMINI_MODEL_ORDER")
+    gemini_session_cap: int = Field(default=20, alias="GEMINI_SESSION_CAP")
+    gemini_daily_cap: int = Field(default=200, alias="GEMINI_DAILY_CAP")
+    # ANSWER_CACHE=on/off: reuse guard-passed answers to repeated questions (see backend/cache).
+    answer_cache: bool = Field(default=True, alias="ANSWER_CACHE")
 
     @field_validator("groq_fallback_model", mode="before")
     @classmethod

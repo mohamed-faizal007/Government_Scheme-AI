@@ -15,6 +15,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from chatbot.backend.api.main import _process_message
+from chatbot.backend.nlu import llm_understander
 from chatbot.backend.rag.generator import DECLINE_MESSAGE
 from chatbot.backend.retrieval.retriever import retrieve
 
@@ -167,6 +168,7 @@ def main():
     retrieval_hits = sum(1 for s in spot_checks if s["found_in_top5"])
 
     metrics = compute_metrics(results)
+    metrics["llm_understanding"] = llm_understander.stats()  # Gemini calls the router left to the LLM layer
     metrics["retrieval_spot_check_hits"] = retrieval_hits
     metrics["retrieval_spot_check_total"] = len(spot_checks)
     metrics["retrieval_spot_check_pct"] = round(

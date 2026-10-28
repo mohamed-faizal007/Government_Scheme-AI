@@ -150,6 +150,10 @@ export function Trust() {
             </div>
           ))}
         </div>
+        <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-ink-muted">
+          Questions the app cannot understand on its own are processed by an external AI service, which sees only that
+          message and the last few turns of the chat. It never sees uploaded documents.
+        </p>
       </div>
     </section>
   )

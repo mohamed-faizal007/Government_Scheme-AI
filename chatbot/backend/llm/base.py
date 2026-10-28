@@ -7,6 +7,11 @@ class ContextTooLargeError(Exception):
     falling back to another provider."""
 
 
+class ProviderUnavailable(Exception):
+    """A provider could not answer (rate limit, daily limit, outage, timeout). The chain moves on
+    to the next provider; when none is left the caller shows the "busy" message."""
+
+
 class BaseLLM(ABC):
     """Abstraction over an LLM provider so callers never depend on a specific vendor SDK."""
 

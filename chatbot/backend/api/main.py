@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from starlette.websockets import WebSocketState
 
+from ..cache import answer_cache
 from ..config import settings
 from ..database.load_chroma import COLLECTION_NAME as CHROMA_COLLECTION_NAME
 from ..database.mongo_client import get_db, get_schemes_collection
@@ -26,20 +27,28 @@ from ..eligibility.rules_engine import _is_junk, check_eligibility
 from ..eligibility.slot_filler import QUESTIONS, get_next_slot
 from ..eligibility.slot_parser import EXAMPLES, is_skip, parse_slot_reply
 from ..eligibility.user_profile import UserProfile
+from ..nlu import llm_understander as nlu
+from ..nlu import smalltalk
+from ..nlu import templates as nlu_templates
 from ..rag.rag_chain import answer as rag_answer
 from ..retrieval.retriever import retrieve
 from ..router.followup import MAX_REMEMBERED_SCHEMES, is_followup, ordinal_index
 from ..router.intent_classifier import classify, is_detail_request
-from ..router.scheme_names import find_schemes_in
+from ..router.scheme_names import find_schemes_in, lookup_scheme_name
+from ..router.typos import fix_typos
 from ..sync import scheduler as sync_scheduler
 from ..sync import sync_status
 from ..translation.translator import resolve_language, translate
+from ..warmup import warm_up
 
 logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
+    # Uvicorn finishes lifespan start-up before it opens the port, so no connection (HTTP or
+    # WebSocket) is accepted until the models are loaded.
+    await run_in_threadpool(warm_up)
     # The scheduler runs on its own daemon thread; failing to start it must not stop the API.
     if settings.sync_scheduler_enabled:
         sync_scheduler.start_scheduler()
@@ -422,6 +431,126 @@ def _add_sync_dates(sources: list) -> None:
             source["data_as_of"] = _format_data_as_of(last_synced)
 
 
+_THANKS_RE = re.compile(r"thank|shukriya|dhanyavad|धन्यवाद|शुक्रिया|நன்றி", re.IGNORECASE)
+# Asks about qualifying/applying; with a stated profile slot this means "run the eligibility engine".
+_QUALIFY_RE = re.compile(
+    r"\b(?:eligib\w*|qualif\w*|apply|applying|entitled|can\s+(?:i|we)\s+get|am\s+i|any\s+help|help\s+me)\b|"
+    r"पात्र|योग्य|आवेदन|தகுதி|விண்ணப்ப",
+    re.IGNORECASE,
+)
+_NLU_PROFILE_FIELDS = {"age": "age", "state": "state", "category": "category", "income": "income_annual", "gender": "gender"}
+
+
+def _apply_nlu_slots(profile: UserProfile, slots: dict) -> None:
+    for slot, field in _NLU_PROFILE_FIELDS.items():
+        if slots.get(slot) is not None:
+            setattr(profile, field, slots[slot])
+
+
+def _direct(answer: str, intent: str, confidence: str = "medium", sources: Optional[list] = None) -> dict:
+    return {"direct": {"answer": answer, "intent": intent, "confidence": confidence, "sources": sources or []}}
+
+
+def _understand_with_llm(message: str, language: str, session: dict) -> Optional[dict]:
+    """Run the LLM understanding layer on a message the router could not classify.
+
+    Returns {"direct": {...}} for replies built from fixed templates, {"intent", "query", "scheme_ids",
+    "slots"} to run the existing pipeline, or None to fall back to the plain refusal. The model's text
+    is only used as a retrieval query (sanitised) or, for clarify, as a question to the user.
+    """
+    last_schemes = session["last_schemes"]
+    result = nlu.understand(message, language, session["history"], [s["name"] for s in last_schemes], session)
+    if result is None:
+        return None
+    tl = language if language in ("en", "hi", "ta") else "en"
+
+    if result.intent == "smalltalk":
+        table = nlu_templates.THANKS if _THANKS_RE.search(message) else nlu_templates.GREETING
+        return _direct(nlu_templates.pick(table, tl), "smalltalk")
+    if result.intent == "clarify":
+        question = nlu.safe_text(result.clarifying_question)
+        text = translate(question, source_lang="en", target_lang=tl) if question else nlu_templates.pick(nlu_templates.CLARIFY, tl)
+        return _direct(text, "clarify")
+    if result.intent == "document_upload" or result.intent == "document_help":
+        return _direct(translate(DOCUMENT_UPLOAD_PROMPT, source_lang="en", target_lang=tl), "document_upload")
+    if result.intent == "out_of_scope":
+        return None
+
+    query = nlu.safe_query(result.rewritten_query_en)
+    if query is None:
+        return None  # empty or instruction-like: treat as out of scope
+
+    slots = result.profile_slots.present()
+    asks_to_qualify = bool(_QUALIFY_RE.search(message) or _QUALIFY_RE.search(query))
+    if result.intent == "eligibility" or (slots and asks_to_qualify):
+        return {"intent": "eligibility_check", "query": query, "scheme_ids": [], "slots": slots}
+
+    scheme_ids: list[str] = []
+    name = nlu.safe_text(result.scheme_name, 120)
+    if name:
+        matches = lookup_scheme_name(name)
+        if not matches:
+            # Never present an unrelated scheme as the one asked for: say so and offer the nearest names.
+            try:
+                closest = list(dict.fromkeys(h["scheme_name"] for h in retrieve(query, top_k=5)))[:3]
+            except Exception:  # noqa: BLE001
+                logger.exception("nlu: closest-name lookup failed")
+                closest = []
+            text = nlu_templates.pick(nlu_templates.NOT_FOUND, tl).format(name=name.replace('"', "'"))
+            if closest:
+                text += nlu_templates.pick(nlu_templates.CLOSEST, tl).format(names="; ".join(closest))
+            return _direct(text, "scheme_search", confidence="low")
+        scheme_ids = [m["id"] for m in matches]
+    return {"intent": "scheme_search", "query": query, "scheme_ids": scheme_ids, "slots": slots}
+
+
+def _profile_is_empty(profile: UserProfile) -> bool:
+    return all(v is None for v in profile.model_dump().values())
+
+
+def _cache_key_for(message: str, language: str, pill: Optional[str], session: dict) -> Optional[str]:
+    """The answer-cache key, or None when this turn depends on the session and must not use the cache:
+    a stated profile, a pending eligibility/clarify question, or a possible follow-up to earlier answers."""
+    if not answer_cache.enabled():
+        return None
+    if not _profile_is_empty(session["profile"]) or session.get("last_slot_asked") is not None:
+        return None
+    if session.get("last_intent") == "clarify":
+        return None
+    if session.get("last_intent") == "eligibility_check" and session.get("last_bot_message_was_question"):
+        return None
+    last_schemes = session["last_schemes"]
+    if last_schemes and (language != "en" or is_followup(message, last_schemes, False)):
+        return None
+    return answer_cache.make_key(message, language, pill)
+
+
+def _record_turn(session: dict, message: str, answer_text: str, intent: str) -> None:
+    session["history"].append({"role": "user", "message": message})
+    session["history"].append({"role": "assistant", "message": answer_text})
+    session["last_intent"] = intent
+    session["last_bot_message_was_question"] = answer_text.rstrip().endswith("?")
+
+
+def _answer_from_cache(hit: dict, message: str, language: str, sid: str, session: dict) -> dict:
+    profile: UserProfile = session["profile"]
+    _apply_entities(profile, hit["entities"])  # same side effect as classifying the question
+    if hit["used_schemes"]:
+        session["last_schemes"] = hit["used_schemes"][:MAX_REMEMBERED_SCHEMES]
+    session["last_slot_asked"] = None
+    _record_turn(session, message, hit["answer"], hit["intent"])
+    return {
+        "answer": hit["answer"],
+        "sources": hit["sources"],
+        "confidence": hit["confidence"],
+        "intent": hit["intent"],
+        "language": language,
+        "session_id": sid,
+        "profile": profile.model_dump(),
+        "eligibility_results": [],
+    }
+
+
 def _process_message(
     message: str, session_id: Optional[str], language_override: Optional[str], source: str = "typed"
 ) -> dict:
@@ -443,12 +572,41 @@ def _process_message(
     sid, session = _get_session(session_id)
     profile: UserProfile = session["profile"]
 
+    # Greetings and thanks are answered from fixed templates, never by an LLM. Skipped while the bot is
+    # waiting for an eligibility answer, so a slot reply is never mistaken for smalltalk.
+    smalltalk_hit = smalltalk.match(message) if session.get("last_slot_asked") is None else None
+    if smalltalk_hit:
+        kind, implied = smalltalk_hit
+        reply_lang = implied or language
+        table = nlu_templates.THANKS if kind == "thanks" else nlu_templates.GREETING
+        answer_text = nlu_templates.pick(table, reply_lang)
+        _record_turn(session, message, answer_text, "smalltalk")
+        return {
+            "answer": answer_text,
+            "sources": [],
+            "confidence": "medium",
+            "intent": "smalltalk",
+            "language": reply_lang if reply_lang in ("en", "hi", "ta") else "en",
+            "session_id": sid,
+            "profile": profile.model_dump(),
+            "eligibility_results": [],
+        }
+
+    cache_key = _cache_key_for(message, language, language_override, session)
+    if cache_key is not None:
+        hit = answer_cache.get(cache_key)
+        if hit is not None:
+            logger.info("answer_cache: hit")
+            return _answer_from_cache(hit, message, language, sid, session)
+
     # intent_classifier is English-only regex matching; translate non-English
     # queries inward for classification purposes. Retrieval and generation
     # still use the original-language `message` — multilingual-e5-small
     # embeds Tamil/Hindi/English natively, so translating for retrieval would
     # only lose signal.
     classification_query = message if language == "en" else translate(message, source_lang=language, target_lang="en")
+    if language == "en":
+        classification_query = fix_typos(classification_query)  # "shcemes for farmres in tamilnadu"
 
     # translate() returns the original text unchanged when no model is
     # installed for this language pair (e.g. Tamil has none). A non-Latin
@@ -503,12 +661,14 @@ def _process_message(
     # Follow-ups ("who can apply for it?", "the first one") reuse the schemes the bot just cited
     # instead of a fresh search, which has nothing to go on.
     scheme_ids: list[str] = []
-    rag_query = message
+    rag_query = classification_query if language == "en" else message  # typo-fixed English, else as typed
     last_schemes = session["last_schemes"]
+    session_dependent = False  # True once the answer depends on earlier turns: never cached
     if intent in ("scheme_search", "out_of_scope") and session.get("last_slot_asked") is None:
         needs_names = bool(last_schemes) or is_detail_request(classification_query)
         named = matched_schemes or (find_schemes_in(classification_query) if needs_names else [])
         if is_followup(classification_query, last_schemes, bool(named)):
+            session_dependent = True
             idx = ordinal_index(classification_query, len(last_schemes))
             chosen = last_schemes if idx is None else [last_schemes[idx]]
             scheme_ids = [s["id"] for s in chosen]
@@ -518,13 +678,36 @@ def _process_message(
             # "Tell me more about <exact scheme name>": fetch that scheme, not whatever ranks near it.
             scheme_ids = [s["id"] for s in named[:2]]
 
+    # Nothing above understood the message: ask the LLM layer (None on any failure -> refusal below).
+    direct = None
+    if intent == "out_of_scope" and session.get("last_slot_asked") is None:
+        understood = _understand_with_llm(message, language, session)
+        if understood and "direct" in understood:
+            direct = understood["direct"]
+            intent = direct["intent"]
+        elif understood:
+            session_dependent = True  # the LLM rewrote the question using the chat history
+            intent, rag_query, scheme_ids = understood["intent"], understood["query"], understood["scheme_ids"]
+            _apply_nlu_slots(profile, understood["slots"])
+            if intent == "eligibility_check":
+                session["eligibility_query"] = rag_query
+                session["slot_failures"] = {}
+                session["skipped_slots"] = set()
+
     eligibility_results = []
-    if intent == "scheme_search" or intent == "comparison":
+    cacheable = False
+    used_schemes: list = []
+    if direct is not None:
+        answer_text, sources, confidence = direct["answer"], direct["sources"], direct["confidence"]
+    elif intent == "scheme_search" or intent == "comparison":
         suffix = COMPARISON_PROMPT_ADDITION if intent == "comparison" else ""
         result = rag_answer(rag_query, language=language, system_prompt_suffix=suffix, scheme_ids=scheme_ids or None)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
         if result.get("used_schemes"):
             session["last_schemes"] = result["used_schemes"][:MAX_REMEMBERED_SCHEMES]
+        # Only a guard-passed answer has sources; refusals, errors and busy messages have none.
+        cacheable = bool(sources) and confidence != "low" and not result.get("busy")
+        used_schemes = result.get("used_schemes", [])
     elif intent == "eligibility_check":
         result = _handle_eligibility(profile, message, language, session)
         answer_text, sources, confidence = result["answer"], result["sources"], result["confidence"]
@@ -543,10 +726,20 @@ def _process_message(
         session["last_slot_asked"] = None  # flow abandoned; don't hijack the next reply
     _add_sync_dates(sources)
 
-    session["history"].append({"role": "user", "message": message})
-    session["history"].append({"role": "assistant", "message": answer_text})
-    session["last_intent"] = intent
-    session["last_bot_message_was_question"] = answer_text.rstrip().endswith("?")
+    _record_turn(session, message, answer_text, intent)
+
+    if cache_key is not None and cacheable and not session_dependent and intent in ("scheme_search", "comparison"):
+        answer_cache.put(
+            cache_key,
+            {
+                "answer": answer_text,
+                "sources": sources,
+                "confidence": confidence,
+                "intent": intent,
+                "used_schemes": used_schemes,
+                "entities": entities,
+            },
+        )
 
     return {
         "answer": answer_text,

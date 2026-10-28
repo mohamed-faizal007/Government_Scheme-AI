@@ -26,6 +26,8 @@ def answer(
         }
 
     result = generate(query, retrieved_schemes, language=language, system_prompt_suffix=system_prompt_suffix)
+    if result.get("busy"):
+        return result  # fixed text already in the user's language
     source_names = [src.get("scheme_name", "") for src in result.get("sources", [])]
     result["answer"] = translate(result["answer"], source_lang="en", target_lang=language, schemes=source_names)
     return result

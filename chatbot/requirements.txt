@@ -1,0 +1,32 @@
+# Built from the imports under chatbot/backend and chatbot/evaluation.
+# Versions are the ones installed in the project venv (Python 3.13.1) when this file was written.
+fastapi==0.141.1
+starlette==1.6.0
+uvicorn==0.52.4
+websockets==16.1.1
+python-multipart==0.0.32
+pydantic==2.13.4
+pydantic-settings==2.15.0
+python-dotenv==1.2.3
+pymongo==4.18.1
+certifi==2026.7.22
+chromadb==1.5.9
+sentence-transformers==6.0.1
+transformers==5.15.1
+torch==2.13.0
+sentencepiece==0.2.2
+sacremoses==0.1.1
+argostranslate==1.11.0
+deep-translator==1.11.4
+langdetect==1.0.9
+groq==1.7.0
+instructor==1.17.0
+pymupdf==1.28.2
+APScheduler==3.11.3
+beautifulsoup4==4.15.0
+requests==2.34.2
+
+# Optional: OCR fallback for scanned PDFs only (documents/ocr.py imports these lazily).
+# Not installed in the venv used for testing, so no version is pinned and it was not tested.
+# paddleocr
+# pdf2image
